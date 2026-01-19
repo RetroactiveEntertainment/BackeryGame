@@ -25,13 +25,13 @@ public class Spawner : MonoBehaviour
     private void Spawn()
     {
         var targetList = levelData.LevelData[spawnerIndex].PrefabsToSpawn;
-        Debug.Log($"Spawning {targetList[_spawnCount].name}");
-        if (_spawnCount >= targetList.Count - 1)
+        if (_spawnCount >= targetList.Count)
             return;
 
+        Debug.Log($"Spawning {targetList[_spawnCount].name}");
         GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
         Debug.Log($"Spawned {spawnedGo.name}");
-        //Matchable matchable = spawnedGo.GetComponent<Matchable>();
+
         if (!spawnedGo.TryGetComponent(out Matchable matchable))
         {
             Debug.LogError($"No Matchable component found on {spawnedGo.name}");

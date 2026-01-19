@@ -13,6 +13,6 @@ MonoBehaviour:
   m_Name: Level01_Spawner1
   m_EditorClassIdentifier: Assembly-CSharp::SpawnDataSO
   PrefabsToSpawn:
-  - {fileID: 4260807732895990661, guid: 7958be4fc6cf3ef41a0d95b1ae198f3a, type: 3}
-  - {fileID: 4260807732895990661, guid: 7958be4fc6cf3ef41a0d95b1ae198f3a, type: 3}
-  - {fileID: 4260807732895990661, guid: 7958be4fc6cf3ef41a0d95b1ae198f3a, type: 3}
+  - {fileID: 931462442563460404, guid: e5adbad6b856c5c4b92c895b4b33cd9e, type: 3}
+  - {fileID: 931462442563460404, guid: e5adbad6b856c5c4b92c895b4b33cd9e, type: 3}
+  - {fileID: 931462442563460404, guid: e5adbad6b856c5c4b92c895b4b33cd9e, type: 3}

@@ -7,13 +7,19 @@ public class Matchable : MonoBehaviour, ITouchable
     private MatchManager matchManager;
     public MatchColor Color;
     [SerializeField] private SplineAnimate splineAnimate;
+    public Slot OccupyingSlot { get; set; }
 
     private void Start()
     {
         matchManager = MatchManager.Instance;
     }
 
-    public void OnDestroy() => matchManager.RemoveMatchable(this);
+    public void OnDestroy()
+    {
+        OccupyingSlot.ClearSlot();
+        matchManager.RemoveMatchable(this);
+    }
+
 
     public void OnTouched()
     {

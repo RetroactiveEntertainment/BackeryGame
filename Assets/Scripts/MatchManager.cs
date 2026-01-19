@@ -56,8 +56,8 @@ public class MatchManager : MonoBehaviour
         }
 
         _matchableInfoDict[matchable.Color].Add(matchable);
-        Transform targetSlotTransform = GetFirstEmptySlot().transform;
-        matchable.transform.position = targetSlotTransform.position;
+        Slot targetEmptySlot = GetFirstEmptySlot();
+        targetEmptySlot.OccupySlot(matchable);
 
         if (targetMatchableList.Count == targetMatchableList.Capacity)
         {
