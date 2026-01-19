@@ -21,6 +21,12 @@ public class Matchable : MonoBehaviour, ITouchable
         matchManager.RegisterMatchable(this);
     }
 
+    public void Initialize(SplineContainer splineContainer, float splineCompleteDuration)
+    {
+        splineAnimate.Container = splineContainer;
+        splineAnimate.Duration = splineCompleteDuration;
+    }
+
 
     public void RemoveSplineAnimate() => Destroy(splineAnimate);
 }

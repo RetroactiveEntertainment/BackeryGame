@@ -55,14 +55,16 @@ public class MatchManager : MonoBehaviour
             return;
         }
 
-        //matchable.RemoveSplineAnimate();
         _matchableInfoDict[matchable.Color].Add(matchable);
         Transform targetSlotTransform = GetFirstEmptySlot().transform;
         matchable.transform.position = targetSlotTransform.position;
 
         if (targetMatchableList.Count == targetMatchableList.Capacity)
         {
-            // Merge
+            foreach (Matchable matchableObject in targetMatchableList)
+            {
+                Destroy(matchableObject.gameObject);
+            }
         }
     }
 

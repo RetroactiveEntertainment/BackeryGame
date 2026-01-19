@@ -1,16 +1,46 @@
 using UnityEngine;
+using UnityEngine.Splines;
 
 public class Spawner : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
+    [SerializeField] private int spawnerIndex;
+    [SerializeField] private float spawnRate;
+    [SerializeField] private float splineCompletionTime = 5f;
+    [SerializeField] private float initialSpawnDelay;
+    [SerializeField] private LevelDataSO levelData;
+    [SerializeField] private SplineContainer splineContainer;
+    private int _spawnCount = 0;
+
+    private void Start()
     {
-        
+        if (splineContainer == null)
+        {
+            Debug.LogError("SplineContainer not assigned");
+            return;
+        }
+
+        InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate);
     }
 
-    // Update is called once per frame
-    void Update()
+    private void Spawn()
     {
-        
+        var targetList = levelData.LevelData[spawnerIndex].PrefabsToSpawn;
+        Debug.Log($"Spawning {targetList[_spawnCount].name}");
+        if (_spawnCount >= targetList.Count - 1)
+            return;
+
+        GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
+        Debug.Log($"Spawned {spawnedGo.name}");
+        //Matchable matchable = spawnedGo.GetComponent<Matchable>();
+        if (!spawnedGo.TryGetComponent(out Matchable matchable))
+        {
+            Debug.LogError($"No Matchable component found on {spawnedGo.name}");
+            return;
+        }
+
+        matchable.Initialize(splineContainer, splineCompletionTime);
+        _spawnCount++;
+
+        spawnedGo.SetActive(true);
     }
 }
