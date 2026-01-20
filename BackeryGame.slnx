@@ -1,0 +1,10 @@
+﻿<Solution>
+  <Project Path="Linework.csproj" />
+  <Project Path="ToonyColorsPro.Editor.csproj" />
+  <Project Path="Linework.Editor.csproj" />
+  <Project Path="ToonyColorsPro.Runtime.csproj" />
+  <Project Path="Unity.Splines.Examples.csproj" />
+  <Project Path="Assembly-CSharp-Editor.csproj" />
+  <Project Path="Assembly-CSharp.csproj" />
+  <Project Path="Unity.Splines.Examples.Editor.csproj" />
+</Solution>
