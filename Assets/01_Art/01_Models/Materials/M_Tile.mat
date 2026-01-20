@@ -7,7 +7,7 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: GroundMat
+  m_Name: M_Tile
   m_Shader: {fileID: -6465566751694194690, guid: edd7abf643fa4bc4e8561d4c280c97cf, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
@@ -15,8 +15,9 @@ Material:
   - TCP2_MOBILE
   - TCP2_REFLECTIONS_FRESNEL
   - TCP2_RIM_LIGHTING_LIGHTMASK
+  - TCP2_SHADOW_LIGHT_COLOR
+  - _ALPHAPREMULTIPLY_ON
   m_InvalidKeywords:
-  - TCP2_OUTLINE_CONST_SIZE
   - TCP2_UV_NORMALS_FULL
   m_LightmapFlags: 6
   m_EnableInstancingVariants: 0
@@ -31,7 +32,7 @@ Material:
     m_TexEnvs:
     - _BaseMap:
         m_Texture: {fileID: 0}
-        m_Scale: {x: 10, y: 10}
+        m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
         m_Texture: {fileID: 0}
@@ -120,7 +121,7 @@ Material:
     - _DetailAlbedoMapScale: 1
     - _DetailNormalMapScale: 1
     - _DirectIntensityOutline: 1
-    - _DstBlend: 0
+    - _DstBlend: 10
     - _DstBlendAlpha: 0
     - _EmissionChannel: 4
     - _EnvironmentReflections: 1
@@ -141,34 +142,34 @@ Material:
     - _OutlineLightingType: 0
     - _OutlineLightingTypeURP: 0
     - _OutlineMaxWidth: 1
-    - _OutlineMinWidth: 3.7
-    - _OutlinePixelSizeType: 1
+    - _OutlineMinWidth: 1
+    - _OutlinePixelSizeType: 0
     - _OutlineTextureLOD: 5
     - _OutlineTextureType: 0
-    - _OutlineWidth: 1.9
+    - _OutlineWidth: 10
     - _Parallax: 0.005
     - _QueueOffset: 0
     - _RampBands: 4
     - _RampBandsSmoothing: 0.1
     - _RampOffset: 0
     - _RampScale: 1
-    - _RampSmoothing: 0.13
-    - _RampThreshold: 0.87
+    - _RampSmoothing: 0.33
+    - _RampThreshold: 0.76
     - _RampType: 0
     - _ReceiveShadows: 1
     - _ReceiveShadowsOff: 1
     - _ReflectionMapType: 0
     - _ReflectionSmoothness: 0.5
-    - _RenderingMode: 0
-    - _RimMax: 0.64
-    - _RimMin: 0
-    - _ShadowColorLightAtten: 0
+    - _RenderingMode: 2
+    - _RimMax: 1
+    - _RimMin: 0.5
+    - _ShadowColorLightAtten: 1
     - _SingleIndirectColor: 0
     - _Smoothness: 0.5
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
     - _SpecularMapType: 0
-    - _SpecularRoughness: 0.5
+    - _SpecularRoughness: 0.34
     - _SpecularToonSize: 0.25
     - _SpecularToonSmoothness: 0.05
     - _SpecularType: 0
@@ -193,20 +194,20 @@ Material:
     - _XRMotionVectorsPass: 1
     - _ZWrite: 1
     m_Colors:
-    - _BaseColor: {r: 0.3679245, g: 0.35307884, b: 0.3453631, a: 1}
+    - _BaseColor: {r: 0.38679248, g: 0.30599374, b: 0.27549842, a: 1}
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _HColor: {r: 1, g: 1, b: 1, a: 1}
+    - _HColor: {r: 0.6132076, g: 0.6132076, b: 0.6132076, a: 1}
     - _MatCapColor: {r: 1, g: 1, b: 1, a: 1}
     - _OutlineColor: {r: 0, g: 0, b: 0, a: 1}
     - _ReflectionColor: {r: 1, g: 1, b: 1, a: 1}
     - _RimColor: {r: 0.8, g: 0.8, b: 0.8, a: 0.5}
-    - _SColor: {r: 0.21698111, g: 0.14431292, b: 0.14431292, a: 1}
+    - _SColor: {r: 0, g: 0, b: 0, a: 1}
     - _SpecColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
     - _SpecularColor: {r: 0.75, g: 0.75, b: 0.75, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
---- !u!114 &2001749524061768565
+--- !u!114 &3267906104630064824
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
