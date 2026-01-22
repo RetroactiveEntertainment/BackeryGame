@@ -8,6 +8,7 @@ public class Matchable : MonoBehaviour, ITouchable
     public MatchColor Color;
     [SerializeField] private SplineAnimate splineAnimate;
     public Slot OccupyingSlot { get; set; }
+    private bool _isTouched = false;
 
     private void Start()
     {
@@ -16,15 +17,19 @@ public class Matchable : MonoBehaviour, ITouchable
 
     public void OnDestroy()
     {
-        OccupyingSlot.ClearSlot();
+        if (OccupyingSlot)
+            OccupyingSlot.ClearSlot();
         matchManager.RemoveMatchable(this);
     }
 
 
     public void OnTouched()
     {
+        if (_isTouched)
+            return;
         RemoveSplineAnimate();
         matchManager.RegisterMatchable(this);
+        _isTouched = true;
     }
 
     public void Initialize(SplineContainer splineContainer, float splineCompleteDuration)
