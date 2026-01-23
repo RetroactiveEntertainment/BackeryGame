@@ -31,6 +31,7 @@ public class Matchable : MonoBehaviour, ITouchable
 
     private void OnSplineAnimateCompleted()
     {
+        EventBus<LosePointEvent>.Raise(new LosePointEvent());
         Destroy(gameObject);
     }
 
