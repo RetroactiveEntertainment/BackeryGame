@@ -35,7 +35,7 @@ public class MatchManager : MonoBehaviour
             var slot = slots[index];
             if (!slot.IsOccupied)
             {
-                Debug.Log($"Found empty slot at index {index}");
+                //Debug.Log($"Found empty slot at index {index}");
                 return index;
             }
         }

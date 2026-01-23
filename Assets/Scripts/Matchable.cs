@@ -13,13 +13,25 @@ public class Matchable : MonoBehaviour, ITouchable
     private void Start()
     {
         matchManager = MatchManager.Instance;
+        splineAnimate.Completed += OnSplineAnimateCompleted;
     }
 
     public void OnDestroy()
     {
+        if (!_isTouched)
+        {
+            Debug.Log("You lost a point!");
+            return;
+        }
+
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
         matchManager.RemoveMatchable(this);
+    }
+
+    private void OnSplineAnimateCompleted()
+    {
+        Destroy(gameObject);
     }
 
 
@@ -27,6 +39,8 @@ public class Matchable : MonoBehaviour, ITouchable
     {
         if (_isTouched)
             return;
+
+        splineAnimate.Pause();
         RemoveSplineAnimate();
         matchManager.RegisterMatchable(this);
         _isTouched = true;

@@ -12,7 +12,7 @@ public class Slot : MonoBehaviour
         OccupyingMatchable = matchable;
         matchable.transform.position = transform.position;
         matchable.OccupyingSlot = this;
-        Debug.Log($" Matchable: {matchable.name} is occupying slot {name}");
+        //Debug.Log($" Matchable: {matchable.name} is occupying slot {name}");
     }
 
     public void ClearSlot()

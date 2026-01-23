@@ -28,9 +28,9 @@ public class Spawner : MonoBehaviour
         if (_spawnCount >= targetList.Count)
             return;
 
-        Debug.Log($"Spawning {targetList[_spawnCount].name}");
+        //Debug.Log($"Spawning {targetList[_spawnCount].name}");
         GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
-        Debug.Log($"Spawned {spawnedGo.name}");
+        //Debug.Log($"Spawned {spawnedGo.name}");
 
         if (!spawnedGo.TryGetComponent(out Matchable matchable))
         {

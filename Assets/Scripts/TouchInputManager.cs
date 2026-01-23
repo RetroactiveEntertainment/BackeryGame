@@ -50,7 +50,7 @@ public class TouchInputManager : MonoBehaviour
         }
 
         GameObject hitObject = hit.collider.gameObject;
-        Debug.Log(hitObject.name);
+        //Debug.Log(hitObject.name);
         hitObject.GetComponent<ITouchable>().OnTouched();
     }
 }
