@@ -589,6 +589,10 @@ PrefabInstance:
       propertyPath: Color
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2195435981880541877, guid: 7958be4fc6cf3ef41a0d95b1ae198f3a, type: 3}
+      propertyPath: <Color>k__BackingField
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 3260764675780278617, guid: 7958be4fc6cf3ef41a0d95b1ae198f3a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

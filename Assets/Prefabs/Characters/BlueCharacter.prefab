@@ -308,8 +308,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44f9e54a99d11fc4d863b0aa0f83fb14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Matchable
-  Color: 1
   splineAnimate: {fileID: 7224974740160587629}
+  <Color>k__BackingField: 1
 --- !u!1 &6829173409213624269
 GameObject:
   m_ObjectHideFlags: 0

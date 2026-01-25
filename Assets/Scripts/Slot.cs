@@ -4,7 +4,6 @@ public class Slot : MonoBehaviour
 {
     public bool IsOccupied { get; private set; }
     public Matchable OccupyingMatchable { get; private set; }
-    [SerializeField] private MatchManager matchManager;
 
     public void OccupySlot(Matchable matchable)
     {

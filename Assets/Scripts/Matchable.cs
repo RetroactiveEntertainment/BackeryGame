@@ -2,23 +2,20 @@ using System;
 using UnityEngine;
 using UnityEngine.Splines;
 
-public class Matchable : MonoBehaviour, ITouchable
+public class Matchable : MonoBehaviour, IMatchable
 {
-    private MatchManager matchManager;
-    public MatchColor Color;
     [SerializeField] private SplineAnimate splineAnimate;
+    private MatchManager m_matchManager;
     public Slot OccupyingSlot { get; set; }
-    private bool _isTouched = false;
 
     private void Start()
     {
-        matchManager = MatchManager.Instance;
         splineAnimate.Completed += OnSplineAnimateCompleted;
     }
 
     public void OnDestroy()
     {
-        if (!_isTouched)
+        if (!IsTouched)
         {
             Debug.Log("You lost a point!");
             return;
@@ -26,7 +23,37 @@ public class Matchable : MonoBehaviour, ITouchable
 
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
-        matchManager.RemoveMatchable(this);
+        m_matchManager.RemoveMatchable(this);
+    }
+
+    [field: SerializeField] public MatchColor Color { get; set; }
+    public bool IsTouched { get; set; } = false;
+
+    public void OnLost()
+    {
+        if (IsTouched) return;
+        Debug.Log("You lost a point!");
+    }
+
+    public void OnMatched()
+    {
+        if (OccupyingSlot)
+            OccupyingSlot.ClearSlot();
+        //m_matchManager.RemoveMatchable(this);
+
+        Destroy(gameObject);
+    }
+
+
+    public void OnTouched()
+    {
+        if (IsTouched)
+            return;
+
+        splineAnimate.Pause();
+        RemoveSplineAnimate();
+        m_matchManager.RegisterMatchable(this);
+        IsTouched = true;
     }
 
     private void OnSplineAnimateCompleted()
@@ -35,20 +62,9 @@ public class Matchable : MonoBehaviour, ITouchable
         Destroy(gameObject);
     }
 
-
-    public void OnTouched()
+    public void Initialize(MatchManager matchManager, SplineContainer splineContainer, float splineCompleteDuration)
     {
-        if (_isTouched)
-            return;
-
-        splineAnimate.Pause();
-        RemoveSplineAnimate();
-        matchManager.RegisterMatchable(this);
-        _isTouched = true;
-    }
-
-    public void Initialize(SplineContainer splineContainer, float splineCompleteDuration)
-    {
+        m_matchManager = matchManager;
         splineAnimate.Container = splineContainer;
         splineAnimate.Duration = splineCompleteDuration;
     }
@@ -70,5 +86,13 @@ public enum MatchColor
 
 public interface ITouchable
 {
+    public bool IsTouched { get; set; }
     public void OnTouched();
+}
+
+public interface IMatchable : ITouchable
+{
+    public MatchColor Color { get; set; }
+    public void OnMatched();
+    public void OnLost();
 }

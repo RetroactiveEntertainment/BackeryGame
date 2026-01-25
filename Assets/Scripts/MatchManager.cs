@@ -8,6 +8,7 @@ public class MatchManager : MonoBehaviour
     public const int REQUIRED_AMOUNT_TO_MATCH = 3;
     public static MatchManager Instance { get; private set; }
     [SerializeField] private Slot[] slots;
+    [SerializeField] private Slot[] ghostSlots;
     private Coroutine _sortCoroutine;
 
     private Dictionary<MatchColor, List<Matchable>> _matchableInfoDict = new Dictionary<MatchColor, List<Matchable>>()
@@ -66,7 +67,7 @@ public class MatchManager : MonoBehaviour
     {
         List<Matchable> targetMatchableList = _matchableInfoDict[matchable.Color];
 
-        if (targetMatchableList.Count == targetMatchableList.Capacity)
+        if (targetMatchableList.Count == REQUIRED_AMOUNT_TO_MATCH)
         {
             Debug.LogError($"Tried adding while capacity for {matchable.Color} was already reached!");
             return;
@@ -75,14 +76,11 @@ public class MatchManager : MonoBehaviour
         _matchableInfoDict[matchable.Color].Add(matchable);
 
 
-        if (targetMatchableList.Count == targetMatchableList.Capacity)
+        if (targetMatchableList.Count == REQUIRED_AMOUNT_TO_MATCH)
         {
             foreach (Matchable matchableObject in targetMatchableList)
             {
-                if (matchableObject.OccupyingSlot)
-                    matchableObject.OccupyingSlot.ClearSlot();
-
-                Destroy(matchableObject.gameObject);
+                matchableObject.OnMatched();
             }
 
             targetMatchableList.Clear();
@@ -122,8 +120,23 @@ public class MatchManager : MonoBehaviour
         _sortCoroutine = null;
     }
 
-    public void RemoveMatchable(Matchable matchable)
+    public void RemoveMatchable(Matchable matchable) => _matchableInfoDict[matchable.Color].Remove(matchable);
+
+    public void MoveToGhostSlot()
     {
-        _matchableInfoDict[matchable.Color].Remove(matchable);
+        for (int index = 0; index < slots.Length; index++)
+        {
+            if (slots[index].IsOccupied && !ghostSlots[index].IsOccupied)
+            {
+                Matchable targetMatchable = slots[index].OccupyingMatchable;
+                RemoveMatchable(targetMatchable);
+                targetMatchable.IsTouched = false;
+                slots[index].ClearSlot();
+                ghostSlots[index].OccupySlot(targetMatchable);
+            }
+        }
     }
 }
+
+/* New Slot Power Logic
+ * For every matchable -> If the ghost slot in front of it is empty, move it there */

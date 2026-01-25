@@ -9,6 +9,7 @@ public class Spawner : MonoBehaviour
     [SerializeField] private float initialSpawnDelay;
     [SerializeField] private LevelDataSO levelData;
     [SerializeField] private SplineContainer splineContainer;
+    [SerializeField] private MatchManager matchManager;
     private int _spawnCount = 0;
 
     private void Start()
@@ -38,7 +39,7 @@ public class Spawner : MonoBehaviour
             return;
         }
 
-        matchable.Initialize(splineContainer, splineCompletionTime);
+        matchable.Initialize(matchManager, splineContainer, splineCompletionTime);
         _spawnCount++;
 
         spawnedGo.SetActive(true);
