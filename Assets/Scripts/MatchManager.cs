@@ -7,6 +7,7 @@ public class MatchManager : MonoBehaviour
 {
     public const int REQUIRED_AMOUNT_TO_MATCH = 3;
     public static MatchManager Instance { get; private set; }
+    [SerializeField] private Transform merchPoint;
     [SerializeField] private Slot[] slots;
     [SerializeField] private Slot[] ghostSlots;
     private Coroutine _sortCoroutine;
@@ -80,7 +81,7 @@ public class MatchManager : MonoBehaviour
         {
             foreach (Matchable matchableObject in targetMatchableList)
             {
-                matchableObject.OnMatched();
+                matchableObject.OnMatched(merchPoint);
             }
 
             targetMatchableList.Clear();

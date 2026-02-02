@@ -1,4 +1,6 @@
+using DG.Tweening;
 using System;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Splines;
 
@@ -6,6 +8,8 @@ public class Matchable : MonoBehaviour, IMatchable
 {
     [SerializeField] private SplineAnimate splineAnimate;
     private MatchManager m_matchManager;
+    private bool _destroyedByMatch;
+    private Tween _merchTween;
     public Slot OccupyingSlot { get; set; }
 
     private void Start()
@@ -15,6 +19,11 @@ public class Matchable : MonoBehaviour, IMatchable
 
     public void OnDestroy()
     {
+        _merchTween?.Kill();
+
+        if (_destroyedByMatch)
+            return;
+
         if (!IsTouched)
         {
             Debug.Log("You lost a point!");
@@ -35,15 +44,24 @@ public class Matchable : MonoBehaviour, IMatchable
         Debug.Log("You lost a point!");
     }
 
-    public void OnMatched()
+    public void OnMatched(Transform point)
     {
+        _destroyedByMatch = true;
+
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
-        //m_matchManager.RemoveMatchable(this);
 
-        Destroy(gameObject);
+        Vector3 targetPos = point.position;
+
+        _merchTween = DOTween.Sequence()
+            .Append(transform.DOMove(targetPos, 0.5f).SetEase(Ease.InOutQuad))
+            .Append(transform.DOScale(Vector3.zero, 0.25f).SetEase(Ease.InBack))
+            .OnComplete(() =>
+            {
+                Destroy(gameObject);
+            });
+
     }
-
 
     public void OnTouched()
     {
@@ -93,6 +111,6 @@ public interface ITouchable
 public interface IMatchable : ITouchable
 {
     public MatchColor Color { get; set; }
-    public void OnMatched();
+    public void OnMatched(Transform point);
     public void OnLost();
 }
