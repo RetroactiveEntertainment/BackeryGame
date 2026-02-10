@@ -20,16 +20,13 @@ public class Matchable : MonoBehaviour, IMatchable
     public void OnDestroy()
     {
         _merchTween?.Kill();
-
         if (_destroyedByMatch)
             return;
-
         if (!IsTouched)
         {
             Debug.Log("You lost a point!");
             return;
         }
-
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
         m_matchManager.RemoveMatchable(this);
@@ -44,30 +41,27 @@ public class Matchable : MonoBehaviour, IMatchable
         Debug.Log("You lost a point!");
     }
 
-    public void OnMatched(Transform point)
+    public void OnMatched(Transform point, Action onCompleteCallback = null)
     {
         _destroyedByMatch = true;
-
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
 
         Vector3 targetPos = point.position;
-
         _merchTween = DOTween.Sequence()
             .Append(transform.DOMove(targetPos, 0.5f).SetEase(Ease.InOutQuad))
             .Append(transform.DOScale(Vector3.zero, 0.25f).SetEase(Ease.InBack))
             .OnComplete(() =>
             {
+                onCompleteCallback?.Invoke();
                 Destroy(gameObject);
             });
-
     }
 
     public void OnTouched()
     {
         if (IsTouched)
             return;
-
         splineAnimate.Pause();
         RemoveSplineAnimate();
         m_matchManager.RegisterMatchable(this);
@@ -86,7 +80,6 @@ public class Matchable : MonoBehaviour, IMatchable
         splineAnimate.Container = splineContainer;
         splineAnimate.Duration = splineCompleteDuration;
     }
-
 
     public void RemoveSplineAnimate() => Destroy(splineAnimate);
 }
@@ -111,6 +104,6 @@ public interface ITouchable
 public interface IMatchable : ITouchable
 {
     public MatchColor Color { get; set; }
-    public void OnMatched(Transform point);
+    public void OnMatched(Transform point, Action onCompleteCallback = null);
     public void OnLost();
 }

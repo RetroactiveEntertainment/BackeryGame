@@ -1,3 +1,4 @@
+using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -7,10 +8,14 @@ public class MatchManager : MonoBehaviour
 {
     public const int REQUIRED_AMOUNT_TO_MATCH = 3;
     public static MatchManager Instance { get; private set; }
-    [SerializeField] private Transform merchPoint;
+    [SerializeField] private Transform merchPoint, matchEndPoint;
     [SerializeField] private Slot[] slots;
     [SerializeField] private Slot[] ghostSlots;
+    [SerializeField] private GameObject[] matchRewards;
     private Coroutine _sortCoroutine;
+
+    private int _matchCallbackCounter = 0;
+    private MatchColor _currentMatchColor = MatchColor.None;
 
     private Dictionary<MatchColor, List<Matchable>> _matchableInfoDict = new Dictionary<MatchColor, List<Matchable>>()
     {
@@ -79,9 +84,12 @@ public class MatchManager : MonoBehaviour
 
         if (targetMatchableList.Count == REQUIRED_AMOUNT_TO_MATCH)
         {
+            _matchCallbackCounter = 0;
+            _currentMatchColor = matchable.Color;
+
             foreach (Matchable matchableObject in targetMatchableList)
             {
-                matchableObject.OnMatched(merchPoint);
+                matchableObject.OnMatched(merchPoint, OnMatchableDestroyed);
             }
 
             targetMatchableList.Clear();
@@ -100,6 +108,16 @@ public class MatchManager : MonoBehaviour
             targetEmptySlot.OccupySlot(matchable);
             if (_sortCoroutine != null) StopCoroutine(_sortCoroutine);
             _sortCoroutine = StartCoroutine(SortBoard());
+        }
+    }
+
+    private void OnMatchableDestroyed()
+    {
+        _matchCallbackCounter++;
+
+        if (_matchCallbackCounter == 1)
+        {
+            SpawnReward(_currentMatchColor);
         }
     }
 
@@ -136,6 +154,25 @@ public class MatchManager : MonoBehaviour
                 ghostSlots[index].OccupySlot(targetMatchable);
             }
         }
+    }
+
+    private void SpawnReward(MatchColor color)
+    {
+        Debug.Log("Match color = " + color);
+        GameObject rewardDessert = Instantiate(matchRewards[(int)color], merchPoint);
+
+        rewardDessert.transform.localScale = Vector3.zero;
+        Vector3 startPos = rewardDessert.transform.position;
+        Vector3 upPos = matchEndPoint.position; 
+
+        DOTween.Sequence()
+            .Append(rewardDessert.transform.DOScale(Vector3.one, 0.75f).SetEase(Ease.OutBack))
+            .Join(rewardDessert.transform.DOMove(upPos, 0.75f).SetEase(Ease.OutQuad))
+            .Append(rewardDessert.transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InBack))
+            .OnComplete(() =>
+            {
+                Destroy(rewardDessert);
+            });
     }
 }
 
