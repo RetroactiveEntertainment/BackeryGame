@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.Splines;
+using Dreamteck.Splines;
 
 public class Spawner : MonoBehaviour
 {
@@ -9,6 +10,9 @@ public class Spawner : MonoBehaviour
     [SerializeField] private float initialSpawnDelay;
     [SerializeField] private LevelDataSO levelData;
     [SerializeField] private SplineContainer splineContainer;
+    [SerializeField] private SplineComputer splineComputer;
+
+
     [SerializeField] private MatchManager matchManager;
     private int _spawnCount = 0;
 
@@ -39,7 +43,7 @@ public class Spawner : MonoBehaviour
             return;
         }
 
-        matchable.Initialize(matchManager, splineContainer, splineCompletionTime);
+        matchable.Initialize(matchManager, splineContainer, splineCompletionTime, splineComputer);
         _spawnCount++;
 
         spawnedGo.SetActive(true);

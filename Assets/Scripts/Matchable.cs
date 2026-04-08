@@ -1,4 +1,5 @@
 using DG.Tweening;
+using Dreamteck.Splines;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -7,6 +8,8 @@ using UnityEngine.Splines;
 public class Matchable : MonoBehaviour, IMatchable
 {
     [SerializeField] private SplineAnimate splineAnimate;
+    [SerializeField] private SplineFollower splineFollower;
+
     private MatchManager m_matchManager;
     private bool _destroyedByMatch;
     private Tween _merchTween;
@@ -62,7 +65,8 @@ public class Matchable : MonoBehaviour, IMatchable
     {
         if (IsTouched)
             return;
-        splineAnimate.Pause();
+        splineFollower.follow = false;
+       // splineAnimate.Pause();
         RemoveSplineAnimate();
         m_matchManager.RegisterMatchable(this);
         IsTouched = true;
@@ -74,11 +78,12 @@ public class Matchable : MonoBehaviour, IMatchable
         Destroy(gameObject);
     }
 
-    public void Initialize(MatchManager matchManager, SplineContainer splineContainer, float splineCompleteDuration)
+    public void Initialize(MatchManager matchManager, SplineContainer splineContainer, float splineCompleteDuration, SplineComputer splineComputer)
     {
         m_matchManager = matchManager;
         splineAnimate.Container = splineContainer;
         splineAnimate.Duration = splineCompleteDuration;
+        splineFollower.spline = splineComputer;
     }
 
     public void RemoveSplineAnimate() => Destroy(splineAnimate);
