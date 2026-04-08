@@ -1,44 +1,81 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using DG.Tweening;
 
 public class MainMenuManager : MonoBehaviour
 {
     [Header("Bottom Bar Buttons")]
-    public List<Button> buttons;
+    public List<RectTransform> buttons;
 
-    [Header("Scale Settings")]
-    public float selectedScale = 1.3f;
-    public float deselectedScale = 1.0f;
+    [Header("Panels")]
+    public List<GameObject> panels;
 
-    private int currentSelectedIndex = 2; // Default: middle button (index 2 out of 0-4)
+    [Header("Size Settings")]
+    public float selectedSize = 80f;
+    public float deselectedSize = 60f;
+    public float animationDuration = 0.3f;
+
+    private int currentSelectedIndex = 2;
 
     private void Start()
     {
         for (int i = 0; i < buttons.Count; i++)
         {
-            buttons[i].transform.localScale = Vector3.one * deselectedScale;
+            SetButtonSize(buttons[i], deselectedSize, 0f);
+
+            Button btn = buttons[i].GetComponent<Button>();
+            int index = i;
+            btn.onClick.AddListener(() => SwitchButton(index));
         }
 
-        // Select the middle button by default
+        for (int i = 0; i < panels.Count; i++)
+        {
+            panels[i].SetActive(false);
+        }
+
         if (buttons.Count > 0 && currentSelectedIndex < buttons.Count)
         {
-            buttons[currentSelectedIndex].transform.localScale = Vector3.one * selectedScale;
+            SetButtonSize(buttons[currentSelectedIndex], selectedSize, 0f);
+            if (currentSelectedIndex < panels.Count)
+            {
+                panels[currentSelectedIndex].SetActive(true);
+            }
         }
     }
 
-    /// <summary>
-    /// Call this from each Button's OnClick event, passing the button reference.
-    /// </summary>
-    public void SwitchButton(Button selectedButton)
+    public void SwitchButton(int selectedIndex)
     {
-        for (int i = 0; i < buttons.Count; i++)
-        {
-            float targetScale = (buttons[i] == selectedButton) ? selectedScale : deselectedScale;
-            buttons[i].transform.localScale = Vector3.one * targetScale;
+        if (selectedIndex == currentSelectedIndex)
+            return;
 
-            if (buttons[i] == selectedButton)
-                currentSelectedIndex = i;
+        SetButtonSize(buttons[currentSelectedIndex], deselectedSize, animationDuration);
+
+
+        if (currentSelectedIndex < panels.Count)
+        {
+            panels[currentSelectedIndex].SetActive(false);
+        }
+
+        SetButtonSize(buttons[selectedIndex], selectedSize, animationDuration);
+
+        if (selectedIndex < panels.Count)
+        {
+            panels[selectedIndex].SetActive(true);
+        }
+
+        currentSelectedIndex = selectedIndex;
+    }
+
+    private void SetButtonSize(RectTransform button, float size, float duration)
+    {
+        if (duration > 0)
+        {
+            button.DOSizeDelta(new Vector2(size, size), duration).SetEase(Ease.OutBack);
+        }
+        else
+        {
+            button.sizeDelta = new Vector2(size, size);
         }
     }
 }
