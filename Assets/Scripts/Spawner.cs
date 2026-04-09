@@ -12,6 +12,7 @@ public class Spawner : MonoBehaviour
     [SerializeField] private SplineContainer splineContainer;
     [SerializeField] private SplineComputer splineComputer;
     [SerializeField] private Animator animator;
+    [SerializeField] private ParticleSystem smokeVfx;
 
 
     [SerializeField] private MatchManager matchManager;
@@ -36,6 +37,7 @@ public class Spawner : MonoBehaviour
 
         //Debug.Log($"Spawning {targetList[_spawnCount].name}");
         animator.Play("furnaceShot");
+        smokeVfx.Play();
         GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
         //Debug.Log($"Spawned {spawnedGo.name}");
 
