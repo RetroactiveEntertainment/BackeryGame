@@ -7,7 +7,7 @@ using UnityEngine.Splines;
 
 public class Matchable : MonoBehaviour, IMatchable
 {
-    [SerializeField] private SplineAnimate splineAnimate;
+    //[SerializeField] private SplineAnimate splineAnimate;
     [SerializeField] private SplineFollower splineFollower;
 
     private MatchManager m_matchManager;
@@ -17,7 +17,7 @@ public class Matchable : MonoBehaviour, IMatchable
 
     private void Start()
     {
-        splineAnimate.Completed += OnSplineAnimateCompleted;
+       // splineAnimate.Completed += OnSplineAnimateCompleted;
     }
 
     public void OnDestroy()
@@ -67,11 +67,15 @@ public class Matchable : MonoBehaviour, IMatchable
             return;
         splineFollower.follow = false;
        // splineAnimate.Pause();
-        RemoveSplineAnimate();
+       // RemoveSplineAnimate();
         m_matchManager.RegisterMatchable(this);
         IsTouched = true;
     }
 
+    public void OnSplineEnd()
+    {
+        Destroy(gameObject);
+    }
     private void OnSplineAnimateCompleted()
     {
         EventBus<LosePointEvent>.Raise(new LosePointEvent());
@@ -81,12 +85,12 @@ public class Matchable : MonoBehaviour, IMatchable
     public void Initialize(MatchManager matchManager, SplineContainer splineContainer, float splineCompleteDuration, SplineComputer splineComputer)
     {
         m_matchManager = matchManager;
-        splineAnimate.Container = splineContainer;
-        splineAnimate.Duration = splineCompleteDuration;
+        //splineAnimate.Container = splineContainer;
+       // splineAnimate.Duration = splineCompleteDuration;
         splineFollower.spline = splineComputer;
     }
 
-    public void RemoveSplineAnimate() => Destroy(splineAnimate);
+    // public void RemoveSplineAnimate() => Destroy(splineAnimate);
 }
 
 public enum MatchColor
