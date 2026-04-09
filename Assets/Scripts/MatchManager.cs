@@ -81,6 +81,7 @@ public class MatchManager : MonoBehaviour
 
         _matchableInfoDict[matchable.Color].Add(matchable);
 
+        matchable.transform.rotation = Quaternion.Euler(0, -120, 0);
 
         if (targetMatchableList.Count == REQUIRED_AMOUNT_TO_MATCH)
         {
