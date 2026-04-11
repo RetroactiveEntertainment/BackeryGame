@@ -28,8 +28,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalScale: {x: 0.8, y: 0.8, z: 0.8}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 3260764675780278617}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -182,7 +182,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 44f9e54a99d11fc4d863b0aa0f83fb14, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Matchable
-  splineAnimate: {fileID: 7224974740160587629}
   splineFollower: {fileID: -5086665562535385187}
   <Color>k__BackingField: 1
 --- !u!114 &-5086665562535385187
@@ -245,9 +244,9 @@ MonoBehaviour:
   _dontLerpDirection: 0
   _physicsMode: 0
   _motion:
-    _hasOffset: 0
+    _hasOffset: 1
     _hasRotationOffset: 0
-    _offset: {x: 0, y: 0}
+    _offset: {x: 0, y: 0.14}
     _rotationOffset: {x: 0, y: 0, z: 0}
     _baseScale: {x: 1, y: 1, z: 1}
     _2dMode: 0
