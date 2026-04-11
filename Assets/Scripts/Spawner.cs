@@ -27,6 +27,19 @@ public class Spawner : MonoBehaviour
         }
 
         InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate);
+       
+
+    }
+    private void Update()
+    {
+        MoveArrowChannel();
+    }
+    private void MoveArrowChannel()
+    {
+        var channel = splineComputer.gameObject.GetComponent<Dreamteck.Splines.SplineMesh>().GetChannel(2);
+        Vector2 currentOffset = channel.uvOffset;
+        currentOffset.y -= 2f * Time.deltaTime;
+        channel.uvOffset = currentOffset;
     }
 
     private void Spawn()
