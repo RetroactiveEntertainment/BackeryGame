@@ -52,8 +52,8 @@ public class Matchable : MonoBehaviour, IMatchable
 
         Vector3 targetPos = point.position;
         _merchTween = DOTween.Sequence()
-            .Append(transform.DOMove(targetPos, 0.5f).SetEase(Ease.InOutQuad))
-            .Append(transform.DOScale(Vector3.zero, 0.25f).SetEase(Ease.InBack))
+            .Append(transform.DOMove(targetPos, 0.4f).SetEase(Ease.InOutQuad))
+            .Append(transform.DOScale(Vector3.zero, 0.15f).SetEase(Ease.InBack))
             .OnComplete(() =>
             {
                 onCompleteCallback?.Invoke();
