@@ -1,5 +1,29 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!114 &-6001234567890123456
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 019e5e7d8460f8246b0c0b3b80074567, type: 3}
+  m_Name: ScreenSpaceContactAOFeature
+  m_EditorClassIdentifier: Assembly-CSharp::ScreenSpaceContactAOFeature
+  m_Active: 1
+  shader: {fileID: 4800000, guid: b00d673bb3e3d2f48bba029dae34a398, type: 3}
+  settings:
+    renderPassEvent: 550
+    intensity: 3.77
+    radiusPixels: 4.5
+    depthBias: 0.01
+    thickness: 0.38
+    contrast: 1.45
+    luminanceProtection: 0.2
+    directionalStrength: 1.4
+    directionalOffsetPixels: {x: -4, y: 4}
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -27,7 +51,8 @@ MonoBehaviour:
   m_RendererFeatures:
   - {fileID: 7833122117494664109}
   - {fileID: 1660775247866050973}
-  m_RendererFeatureMap: ad6b866f10d7b46c9d39d1ec49420c17
+  - {fileID: -6001234567890123456}
+  m_RendererFeatureMap: ad6b866f10d7b46c9d39d1ec49420c1740451dd7f454b7ac
   m_UseNativeRenderPass: 1
   xrSystemData: {fileID: 0}
   postProcessData: {fileID: 11400000, guid: 41439944d30ece34e96484bdb6645b55, type: 2}
