@@ -2,6 +2,7 @@ using DG.Tweening;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class MatchManager : MonoBehaviour
@@ -12,6 +13,7 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private Slot[] slots;
     [SerializeField] private Slot[] ghostSlots;
     [SerializeField] private GameObject[] matchRewards;
+    [SerializeField] private Spawner[] frozenFurnace;
     private Coroutine _sortCoroutine;
 
     private int _matchCallbackCounter = 0;
@@ -92,7 +94,7 @@ public class MatchManager : MonoBehaviour
             {
                 matchableObject.OnMatched(merchPoint, OnMatchableDestroyed);
             }
-
+            BreakIce();
             targetMatchableList.Clear();
             if (_sortCoroutine != null) StopCoroutine(_sortCoroutine);
             _sortCoroutine = StartCoroutine(SortBoard());
@@ -174,6 +176,17 @@ public class MatchManager : MonoBehaviour
             {
                 Destroy(rewardDessert);
             });
+    }
+
+    private void BreakIce()
+    {
+        if(frozenFurnace.Count() > 0)
+        {
+            for (int i = 0; i < frozenFurnace.Count(); i++)
+            {
+                frozenFurnace[i].RemoveIce();
+            }
+        }
     }
 }
 

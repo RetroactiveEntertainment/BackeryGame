@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.Splines;
 using Dreamteck.Splines;
+using TMPro;
 
 public class Spawner : MonoBehaviour
 {
@@ -16,6 +17,10 @@ public class Spawner : MonoBehaviour
     [SerializeField] private int arrowMaterialIndex = 2;
     [SerializeField] private float arrowTextureScrollSpeed = 2f;
 
+    [SerializeField] bool IsFrozen = false;
+    [SerializeField] int requiredHeat = 0;
+    [SerializeField] TextMeshProUGUI freezeStatusText;
+    [SerializeField] GameObject frozenObject;
 
     [SerializeField] private MatchManager matchManager;
     private int _spawnCount = 0;
@@ -30,14 +35,22 @@ public class Spawner : MonoBehaviour
         }
 
         CacheArrowMaterial();
-        InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate);
-       
 
+        if(requiredHeat > 0)
+        {
+            freezeStatusText.text = requiredHeat.ToString();
+            IsFrozen = true;
+            return;
+        }
+
+        InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate); 
+        
     }
     private void Update()
     {
         MoveArrowChannel();
     }
+
     private void MoveArrowChannel()
     {
         if (arrowMaterial == null)
@@ -101,5 +114,23 @@ public class Spawner : MonoBehaviour
         _spawnCount++;
 
         spawnedGo.SetActive(true);
+    }
+
+    public void RemoveIce()
+    {
+        if(IsFrozen == false)
+            return;    
+        
+        --requiredHeat;
+        freezeStatusText.text = requiredHeat.ToString();
+
+        if(requiredHeat <= 0)
+        {
+            frozenObject.SetActive(false);
+            freezeStatusText.gameObject.SetActive(false);
+            IsFrozen = false;
+            InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate); 
+        }
+
     }
 }
