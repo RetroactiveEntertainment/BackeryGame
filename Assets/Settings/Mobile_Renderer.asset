@@ -16,12 +16,12 @@ MonoBehaviour:
   shader: {fileID: 4800000, guid: b00d673bb3e3d2f48bba029dae34a398, type: 3}
   settings:
     renderPassEvent: 550
-    intensity: 4
-    radiusPixels: 3
+    intensity: 0.98
+    radiusPixels: 4.42
     depthBias: 0.0355
-    thickness: 0.39
-    contrast: 0.66
-    luminanceProtection: 0.177
+    thickness: 0.01
+    contrast: 1.06
+    luminanceProtection: 0.613
     directionalStrength: 0.87
     directionalOffsetPixels: {x: -4, y: 4}
 --- !u!114 &11400000

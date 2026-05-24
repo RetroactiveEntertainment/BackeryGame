@@ -13,7 +13,7 @@ public class Spawner : MonoBehaviour
     [SerializeField] private SplineComputer splineComputer;
     [SerializeField] private Animator animator;
     [SerializeField] private ParticleSystem smokeVfx;
-    [SerializeField] private int arrowMaterialIndex = 1;
+    [SerializeField] private int arrowMaterialIndex = 2;
     [SerializeField] private float arrowTextureScrollSpeed = 2f;
 
 
