@@ -19,28 +19,27 @@ public class MainMenuManager : MonoBehaviour
     public Button playButton;
     public string loadingSceneName = "LoadingScreen";
 
-    [Header("Size Settings")]
-    public float selectedSize = 80f;
-    public float deselectedSize = 60f;
+    [Header("Animation")]
     public float animationDuration = 0.3f;
-    public float overlap = 32f;
-    public float edgeBleed = 24f;
-    public float selectedIconYOffset = 8f;
 
     [Header("Navbar Art")]
     public Sprite navbarContainerSprite;
     public Sprite navbarSelectedSprite;
-    public Sprite navbarIconSprite;
     public List<Sprite> navbarIconSprites;
     public Sprite navbarSeparatorSprite;
     public string[] tabLabels = { "Store", "Leaderboard", "Home", "Settings" };
+    public TMP_FontAsset navbarLabelFont;
+    public float navbarLabelFontSize = 48f;
+    public float navbarLabelMinFontSize = 28f;
+    public bool navbarLabelAutoSize = true;
+    public float navbarLabelHeight = 92f;
     public float navBarHeight = 190f;
     public float navIconDeselectedSize = 118f;
     public float navIconSelectedSize = 190f;
     public float navSelectedBackgroundWidth = 320f;
     public float navSelectedBackgroundHeight = 300f;
-    public float navSelectedBackgroundYOffset = 72f;
     public float navSelectedBottomBleed = 8f;
+    public float navSelectedHorizontalInset = 18f;
     public float navSelectedIconYOffset = 132f;
     public float navDeselectedIconYOffset = 0f;
     public float navLabelYOffset = -52f;
@@ -50,6 +49,20 @@ public class MainMenuManager : MonoBehaviour
     public float navSeparatorWidth = 18f;
     public float navSeparatorHeightRatio = 0.78f;
 
+    [Header("Top Bar Art")]
+    public RectTransform topBarRoot;
+    public Sprite topBarContainerSprite;
+    public Sprite topBarProfileSprite;
+    public Sprite topBarSettingsSprite;
+    public Sprite topBarPlusSprite;
+    public Sprite topBarHeartSprite;
+    public Sprite topBarGoldSprite;
+    public Sprite topBarButtonSprite;
+    public TMP_FontAsset topBarFont;
+    public bool autoBuildTopBar = true;
+    public float topBarHeight = 150f;
+    public float topBarTopOffset = 58f;
+
     private int currentSelectedIndex = 2;
     private HorizontalLayoutGroup bottomBarLayoutGroup;
     private RectTransform bottomBarLayoutRect;
@@ -57,8 +70,6 @@ public class MainMenuManager : MonoBehaviour
     private readonly List<RectTransform> screenRects = new List<RectTransform>();
     private readonly List<NavbarItemVisual> navbarItems = new List<NavbarItemVisual>();
     private readonly List<RectTransform> navbarSeparators = new List<RectTransform>();
-    private float runtimeDeselectedSize;
-    private float runtimeSelectedSize;
     private Tween screenSlideTween;
     private bool refreshingNavbarPreview;
 
@@ -89,13 +100,12 @@ public class MainMenuManager : MonoBehaviour
         Canvas.ForceUpdateCanvases();
         ConfigureBottomBarLayout();
         ConfigureNavbarVisuals();
+        ConfigureTopBarVisuals();
         ConfigureScreens();
-        RecalculateButtonSizes();
         ConfigurePlayButton();
 
         for (int i = 0; i < buttons.Count; i++)
         {
-            SetButtonSize(buttons[i], runtimeDeselectedSize, 0f);
             SetNavbarItemState(i, i == currentSelectedIndex, 0f);
 
             Button btn = buttons[i].GetComponent<Button>();
@@ -105,7 +115,6 @@ public class MainMenuManager : MonoBehaviour
 
         if (buttons.Count > 0 && currentSelectedIndex < buttons.Count)
         {
-            SetButtonSize(buttons[currentSelectedIndex], runtimeSelectedSize, 0f);
             SetNavbarItemState(currentSelectedIndex, true, 0f);
             PositionScreens(currentSelectedIndex);
         }
@@ -132,13 +141,11 @@ public class MainMenuManager : MonoBehaviour
         if (selectedIndex == currentSelectedIndex)
             return;
 
-        SetButtonSize(buttons[currentSelectedIndex], runtimeDeselectedSize, animationDuration);
         SetNavbarItemState(currentSelectedIndex, false, animationDuration);
 
         PositionNavbarButtons(selectedIndex);
         PositionNavbarSeparators(selectedIndex);
 
-        SetButtonSize(buttons[selectedIndex], runtimeSelectedSize, animationDuration);
         SetNavbarItemState(selectedIndex, true, animationDuration);
 
         SlideToScreen(selectedIndex);
@@ -176,10 +183,8 @@ public class MainMenuManager : MonoBehaviour
             return;
         }
 
-        RecalculateButtonSizes();
         for (int i = 0; i < buttons.Count; i++)
         {
-            SetButtonSize(buttons[i], i == currentSelectedIndex ? runtimeSelectedSize : runtimeDeselectedSize, 0f);
             SetNavbarItemState(i, i == currentSelectedIndex, 0f);
         }
 
@@ -207,12 +212,11 @@ public class MainMenuManager : MonoBehaviour
 
             Canvas.ForceUpdateCanvases();
             ConfigureBottomBarLayout();
-            RecalculateButtonSizes();
             ConfigureNavbarVisuals();
+            ConfigureTopBarVisuals();
 
             for (int i = 0; i < buttons.Count; i++)
             {
-                SetButtonSize(buttons[i], runtimeDeselectedSize, 0f);
                 SetNavbarItemState(i, i == currentSelectedIndex, 0f);
             }
 
@@ -472,8 +476,8 @@ public class MainMenuManager : MonoBehaviour
         selectedBackground.anchorMin = new Vector2(0f, 0f);
         selectedBackground.anchorMax = new Vector2(1f, 0f);
         selectedBackground.pivot = new Vector2(0.5f, 0f);
-        selectedBackground.offsetMin = new Vector2(0f, -navSelectedBottomBleed);
-        selectedBackground.offsetMax = new Vector2(0f, navSelectedBackgroundHeight - navSelectedBottomBleed);
+        selectedBackground.offsetMin = new Vector2(navSelectedHorizontalInset, -navSelectedBottomBleed);
+        selectedBackground.offsetMax = new Vector2(-navSelectedHorizontalInset, navSelectedBackgroundHeight - navSelectedBottomBleed);
         selectedBackground.SetAsFirstSibling();
 
         RectTransform icon = GetOrCreateChild(button, "NavbarIcon", typeof(Image));
@@ -490,13 +494,23 @@ public class MainMenuManager : MonoBehaviour
         RectTransform label = GetOrCreateChild(button, "SelectedLabel", typeof(TextMeshProUGUI), typeof(CanvasGroup));
         label.localScale = Vector3.one;
         TextMeshProUGUI labelText = label.GetComponent<TextMeshProUGUI>();
+        if (navbarLabelFont != null)
+        {
+            labelText.font = navbarLabelFont;
+        }
+
         labelText.text = index < tabLabels.Length ? tabLabels[index] : string.Empty;
         labelText.alignment = TextAlignmentOptions.Center;
-        labelText.fontSize = 48f;
+        labelText.fontSize = navbarLabelFontSize;
+        labelText.fontSizeMin = navbarLabelMinFontSize;
+        labelText.fontSizeMax = navbarLabelFontSize;
+        labelText.enableAutoSizing = navbarLabelAutoSize;
         labelText.fontStyle = FontStyles.Bold;
         labelText.color = Color.white;
+        labelText.enableWordWrapping = false;
+        labelText.overflowMode = TextOverflowModes.Overflow;
         labelText.raycastTarget = false;
-        label.sizeDelta = new Vector2(navSelectedBackgroundWidth, 68f);
+        label.sizeDelta = new Vector2(navSelectedBackgroundWidth - (navSelectedHorizontalInset * 2f), navbarLabelHeight);
         label.anchoredPosition = new Vector2(0f, navLabelYOffset);
         label.SetAsLastSibling();
 
@@ -532,7 +546,158 @@ public class MainMenuManager : MonoBehaviour
         if (navbarIconSprites != null && index >= 0 && index < navbarIconSprites.Count && navbarIconSprites[index] != null)
             return navbarIconSprites[index];
 
-        return navbarIconSprite;
+        return null;
+    }
+
+    private void ConfigureTopBarVisuals()
+    {
+        if (!autoBuildTopBar)
+            return;
+
+        RectTransform root = GetTopBarRoot();
+        if (root == null)
+            return;
+
+        root.anchorMin = new Vector2(0f, 1f);
+        root.anchorMax = new Vector2(1f, 1f);
+        root.pivot = new Vector2(0.5f, 1f);
+        root.anchoredPosition = new Vector2(0f, -topBarTopOffset);
+        root.sizeDelta = new Vector2(0f, topBarHeight);
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child.name != "TopBarGenerated")
+            {
+                child.gameObject.SetActive(false);
+            }
+        }
+
+        RectTransform generatedRoot = GetOrCreateChild(root, "TopBarGenerated");
+        generatedRoot.gameObject.SetActive(true);
+        generatedRoot.anchorMin = Vector2.zero;
+        generatedRoot.anchorMax = Vector2.one;
+        generatedRoot.offsetMin = Vector2.zero;
+        generatedRoot.offsetMax = Vector2.zero;
+        generatedRoot.SetAsLastSibling();
+
+        RectTransform profile = CreateTopBarImage(generatedRoot, "Profile", topBarProfileSprite, new Vector2(128f, 128f), new Vector2(-385f, -2f), false);
+        profile.SetAsLastSibling();
+
+        CreateTopBarCurrencyGroup(generatedRoot, "GoldGroup", topBarGoldSprite, "1000", string.Empty, new Vector2(-132f, -12f));
+        CreateTopBarCurrencyGroup(generatedRoot, "HeartGroup", topBarHeartSprite, "5", "Full", new Vector2(142f, -12f));
+
+        RectTransform settingsButton = CreateTopBarImage(generatedRoot, "SettingsButton", topBarButtonSprite, new Vector2(96f, 96f), new Vector2(385f, -2f), true);
+        CreateTopBarImage(settingsButton, "SettingsIcon", topBarSettingsSprite, new Vector2(66f, 66f), Vector2.zero, false);
+    }
+
+    private RectTransform GetTopBarRoot()
+    {
+        if (topBarRoot != null)
+            return topBarRoot;
+
+        Transform found = FindChildRecursive(transform, "TopBar");
+        topBarRoot = found as RectTransform;
+        return topBarRoot;
+    }
+
+    private Transform FindChildRecursive(Transform parent, string childName)
+    {
+        if (parent == null)
+            return null;
+
+        for (int i = 0; i < parent.childCount; i++)
+        {
+            Transform child = parent.GetChild(i);
+            if (child.name == childName)
+                return child;
+
+            Transform nested = FindChildRecursive(child, childName);
+            if (nested != null)
+                return nested;
+        }
+
+        return null;
+    }
+
+    private void CreateTopBarCurrencyGroup(RectTransform parent, string groupName, Sprite iconSprite, string amount, string suffix, Vector2 anchoredPosition)
+    {
+        RectTransform group = GetOrCreateChild(parent, groupName);
+        group.anchorMin = new Vector2(0.5f, 0.5f);
+        group.anchorMax = new Vector2(0.5f, 0.5f);
+        group.pivot = new Vector2(0.5f, 0.5f);
+        group.sizeDelta = new Vector2(245f, 88f);
+        group.anchoredPosition = anchoredPosition;
+        group.localScale = Vector3.one;
+
+        RectTransform container = CreateTopBarImage(group, "Container", topBarContainerSprite, new Vector2(string.IsNullOrEmpty(suffix) ? 188f : 214f, 60f), new Vector2(32f, 0f), true);
+        container.SetAsFirstSibling();
+
+        RectTransform icon = CreateTopBarImage(group, "Icon", iconSprite, new Vector2(82f, 82f), new Vector2(-78f, 5f), false);
+        icon.SetAsLastSibling();
+
+        RectTransform plus = CreateTopBarImage(group, "Plus", topBarPlusSprite, new Vector2(38f, 38f), new Vector2(-58f, -25f), false);
+        plus.SetAsLastSibling();
+
+        TextMeshProUGUI amountText = CreateTopBarText(group, "Amount", amount, new Vector2(string.IsNullOrEmpty(suffix) ? 30f : 8f, 1f), new Vector2(118f, 48f), 34f);
+        amountText.alignment = string.IsNullOrEmpty(suffix) ? TextAlignmentOptions.Center : TextAlignmentOptions.Left;
+
+        if (!string.IsNullOrEmpty(suffix))
+        {
+            TextMeshProUGUI suffixText = CreateTopBarText(group, "Suffix", suffix, new Vector2(86f, 1f), new Vector2(86f, 48f), 30f);
+            suffixText.alignment = TextAlignmentOptions.Center;
+        }
+        else
+        {
+            Transform suffixChild = group.Find("Suffix");
+            if (suffixChild != null)
+                suffixChild.gameObject.SetActive(false);
+        }
+    }
+
+    private RectTransform CreateTopBarImage(RectTransform parent, string childName, Sprite sprite, Vector2 size, Vector2 anchoredPosition, bool sliced)
+    {
+        RectTransform rectTransform = GetOrCreateChild(parent, childName, typeof(Image));
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = size;
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.localScale = Vector3.one;
+
+        Image image = rectTransform.GetComponent<Image>();
+        image.sprite = sprite;
+        image.type = sliced ? Image.Type.Sliced : Image.Type.Simple;
+        image.preserveAspect = !sliced;
+        image.raycastTarget = false;
+
+        return rectTransform;
+    }
+
+    private TextMeshProUGUI CreateTopBarText(RectTransform parent, string childName, string text, Vector2 anchoredPosition, Vector2 size, float fontSize)
+    {
+        RectTransform rectTransform = GetOrCreateChild(parent, childName, typeof(TextMeshProUGUI));
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = size;
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.localScale = Vector3.one;
+
+        TextMeshProUGUI textComponent = rectTransform.GetComponent<TextMeshProUGUI>();
+        if (topBarFont != null)
+        {
+            textComponent.font = topBarFont;
+        }
+
+        textComponent.text = text;
+        textComponent.fontSize = fontSize;
+        textComponent.fontStyle = FontStyles.Bold;
+        textComponent.color = new Color(0.28f, 0.13f, 0.08f, 1f);
+        textComponent.raycastTarget = false;
+
+        rectTransform.gameObject.SetActive(true);
+        return textComponent;
     }
 
     private RectTransform GetOrCreateChild(RectTransform parent, string childName, params System.Type[] components)
@@ -643,67 +808,12 @@ public class MainMenuManager : MonoBehaviour
         {
             item.Icon.sizeDelta = new Vector2(iconSize, iconSize);
             item.Icon.anchoredPosition = new Vector2(item.Icon.anchoredPosition.x, iconY);
-            item.SelectedBackground.offsetMin = new Vector2(0f, -navSelectedBottomBleed);
-            item.SelectedBackground.offsetMax = new Vector2(0f, navSelectedBackgroundHeight - navSelectedBottomBleed);
+            item.SelectedBackground.offsetMin = new Vector2(navSelectedHorizontalInset, -navSelectedBottomBleed);
+            item.SelectedBackground.offsetMax = new Vector2(-navSelectedHorizontalInset, navSelectedBackgroundHeight - navSelectedBottomBleed);
             item.SelectedBackground.localScale = Vector3.one * selectedScale;
             item.SelectedGroup.alpha = alpha;
             item.Label.anchoredPosition = new Vector2(0f, navLabelYOffset);
             item.LabelGroup.alpha = alpha;
-        }
-    }
-
-    private void RecalculateButtonSizes()
-    {
-        runtimeDeselectedSize = deselectedSize;
-        runtimeSelectedSize = selectedSize;
-
-        if (bottomBarLayoutRect == null || buttons == null || buttons.Count == 0 || deselectedSize <= 0f)
-            return;
-
-        float layoutWidth = bottomBarLayoutRect.rect.width;
-        if (layoutWidth <= 0f)
-            return;
-
-        float buttonScale = Mathf.Max(0.001f, buttons[0].localScale.x);
-        runtimeDeselectedSize = layoutWidth / (buttons.Count * buttonScale);
-        runtimeSelectedSize = runtimeDeselectedSize;
-    }
-
-    private void SetButtonSize(RectTransform button, float size, float duration)
-    {
-        if (button == null)
-            return;
-
-        button.sizeDelta = Vector2.zero;
-        RebuildBottomBarLayout();
-    }
-
-    private void SetIconYOffset(RectTransform button, float yOffset, float duration)
-    {
-        if (button == null || button.childCount == 0)
-            return;
-
-        RectTransform icon = button.GetChild(0) as RectTransform;
-        if (icon == null)
-            return;
-
-        if (duration > 0)
-        {
-            icon.DOAnchorPosY(yOffset, duration).SetEase(Ease.OutBack);
-        }
-        else
-        {
-            Vector2 anchoredPosition = icon.anchoredPosition;
-            anchoredPosition.y = yOffset;
-            icon.anchoredPosition = anchoredPosition;
-        }
-    }
-
-    private void RebuildBottomBarLayout()
-    {
-        if (bottomBarLayoutRect != null)
-        {
-            LayoutRebuilder.ForceRebuildLayoutImmediate(bottomBarLayoutRect);
         }
     }
 }

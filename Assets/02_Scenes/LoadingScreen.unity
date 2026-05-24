@@ -256,7 +256,17 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   levelScenePath: Assets/02_Scenes/Level01.unity
-  minimumDisplayTime: 0.5
+  minimumDisplayTime: 3
+  loadingScreenSprite: {fileID: 21300000, guid: 041f2181cac6b3541b4c8bcc248e6b9b, type: 3}
+  loadingFont: {fileID: 11400000, guid: 0fd5dba46b7eb794aa10e59056d48442, type: 2}
+  previewCanvasGroup: {fileID: 0}
+  previewImageRect: {fileID: 0}
+  previewTextRect: {fileID: 0}
+  enterDuration: 0.55
+  exitDuration: 0.45
+  imageOverscan: 160
+  loadingTextBottomOffset: 150
+  loadingTextFontSize: 54
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
