@@ -74,6 +74,33 @@ public class MainMenuManager : MonoBehaviour
     public float topBarHeight = 150f;
     public float topBarTopOffset = 58f;
 
+    [HideInInspector]
+    public RectTransform settingsPanelRoot;
+    [HideInInspector]
+    public Sprite settingsContainerSprite;
+    [HideInInspector]
+    public Sprite settingsSmallContainerSprite;
+    [HideInInspector]
+    public Sprite settingsTitleContainerSprite;
+    [HideInInspector]
+    public Sprite settingsSoundIconSprite;
+    [HideInInspector]
+    public Sprite settingsMusicIconSprite;
+    [HideInInspector]
+    public Sprite settingsSliderBorderSprite;
+    [HideInInspector]
+    public Sprite settingsSliderOnSprite;
+    [HideInInspector]
+    public Sprite settingsSliderOffSprite;
+    [HideInInspector]
+    public Sprite settingsSliderHandleSprite;
+    [HideInInspector]
+    public bool notificationsEnabled = true;
+    [HideInInspector]
+    public bool soundsEnabled = true;
+    [HideInInspector]
+    public bool musicEnabled = true;
+
     private int currentSelectedIndex = 2;
     private HorizontalLayoutGroup bottomBarLayoutGroup;
     private RectTransform bottomBarLayoutRect;
@@ -634,6 +661,190 @@ public class MainMenuManager : MonoBehaviour
         CreateTopBarImage(settingsButton, "SettingsIcon", topBarSettingsSprite, new Vector2(66f, 66f), Vector2.zero, false);
     }
 
+    private void ConfigureSettingsVisuals()
+    {
+        RectTransform root = GetSettingsPanelRoot();
+        if (root == null)
+            return;
+
+        Image panelImage = root.GetComponent<Image>();
+        if (panelImage != null)
+        {
+            panelImage.color = new Color(0.77f, 0.64f, 0.50f, 1f);
+            panelImage.raycastTarget = false;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child.name != "SettingsGenerated")
+            {
+                child.gameObject.SetActive(false);
+            }
+        }
+
+        RectTransform generated = GetOrCreateChild(root, "SettingsGenerated");
+        generated.gameObject.SetActive(true);
+        generated.anchorMin = Vector2.zero;
+        generated.anchorMax = Vector2.one;
+        generated.offsetMin = Vector2.zero;
+        generated.offsetMax = Vector2.zero;
+        generated.localScale = Vector3.one;
+        generated.SetAsLastSibling();
+
+        RectTransform panel = GetOrCreateChild(generated, "PanelContainer");
+        panel.anchorMin = new Vector2(0.5f, 0.5f);
+        panel.anchorMax = new Vector2(0.5f, 0.5f);
+        panel.pivot = new Vector2(0.5f, 0.5f);
+        panel.sizeDelta = new Vector2(980f, 1220f);
+        panel.anchoredPosition = new Vector2(0f, 80f);
+        panel.localScale = Vector3.one;
+        Image panelContainerImage = panel.GetComponent<Image>();
+        if (panelContainerImage != null)
+        {
+            panelContainerImage.enabled = false;
+            panelContainerImage.raycastTarget = false;
+        }
+
+        RectTransform titleContainer = CreateSettingsImage(panel, "TitleContainer", settingsTitleContainerSprite, new Vector2(980f, 252f), new Vector2(0f, 500f), false);
+        titleContainer.SetAsFirstSibling();
+        CreateSettingsText(titleContainer, "Title", "SETTINGS", new Vector2(0f, -6f), new Vector2(670f, 126f), 82f);
+
+        RectTransform notifications = CreateSettingsImage(panel, "NotificationsContainer", settingsSmallContainerSprite, new Vector2(860f, 178f), new Vector2(0f, 250f), false);
+        CreateSettingsText(notifications, "Label", "Notifications", new Vector2(-210f, 4f), new Vector2(500f, 102f), 54f);
+        CreateSettingsToggle(notifications, "NotificationsToggle", notificationsEnabled, new Vector2(275f, 0f));
+
+        RectTransform audioContainer = CreateSettingsImage(panel, "AudioContainer", settingsContainerSprite, new Vector2(860f, 482f), new Vector2(0f, -95f), false);
+        CreateSettingsAudioButton(audioContainer, "Sounds", "Sounds", settingsSoundIconSprite, soundsEnabled, new Vector2(-185f, -25f));
+        CreateSettingsAudioButton(audioContainer, "Music", "Music", settingsMusicIconSprite, musicEnabled, new Vector2(185f, -25f));
+    }
+
+    private RectTransform GetSettingsPanelRoot()
+    {
+        if (settingsPanelRoot != null)
+            return settingsPanelRoot;
+
+        Transform found = FindChildRecursive(transform, "SettingsPanel");
+        settingsPanelRoot = found as RectTransform;
+        return settingsPanelRoot;
+    }
+
+    private RectTransform CreateSettingsImage(RectTransform parent, string childName, Sprite sprite, Vector2 size, Vector2 anchoredPosition, bool sliced)
+    {
+        RectTransform rectTransform = GetOrCreateChild(parent, childName, typeof(Image));
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = size;
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.localScale = Vector3.one;
+
+        Image image = rectTransform.GetComponent<Image>();
+        image.sprite = sprite;
+        image.type = sliced ? Image.Type.Sliced : Image.Type.Simple;
+        image.preserveAspect = !sliced;
+        image.raycastTarget = false;
+
+        return rectTransform;
+    }
+
+    private TextMeshProUGUI CreateSettingsText(RectTransform parent, string childName, string text, Vector2 anchoredPosition, Vector2 size, float fontSize)
+    {
+        RectTransform rectTransform = GetOrCreateChild(parent, childName, typeof(TextMeshProUGUI), typeof(Shadow));
+        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.sizeDelta = size;
+        rectTransform.anchoredPosition = anchoredPosition;
+        rectTransform.localScale = Vector3.one;
+
+        TextMeshProUGUI textComponent = rectTransform.GetComponent<TextMeshProUGUI>();
+        TMP_FontAsset font = navbarLabelFont != null ? navbarLabelFont : topBarFont;
+        if (font != null)
+        {
+            textComponent.font = font;
+        }
+
+        textComponent.text = text;
+        textComponent.alignment = TextAlignmentOptions.Center;
+        textComponent.fontSize = fontSize;
+        textComponent.enableAutoSizing = true;
+        textComponent.fontSizeMin = fontSize * 0.72f;
+        textComponent.fontSizeMax = fontSize;
+        textComponent.fontStyle = FontStyles.Bold;
+        textComponent.color = Color.white;
+        textComponent.enableWordWrapping = false;
+        textComponent.raycastTarget = false;
+
+        Shadow shadow = rectTransform.GetComponent<Shadow>();
+        shadow.effectColor = new Color(0.29f, 0.08f, 0.04f, 1f);
+        shadow.effectDistance = new Vector2(0f, -8f);
+        shadow.useGraphicAlpha = true;
+
+        return textComponent;
+    }
+
+    private RectTransform CreateSettingsToggle(RectTransform parent, string childName, bool isOn, Vector2 anchoredPosition)
+    {
+        RectTransform root = GetOrCreateChild(parent, childName, typeof(Image), typeof(Button));
+        root.anchorMin = new Vector2(0.5f, 0.5f);
+        root.anchorMax = new Vector2(0.5f, 0.5f);
+        root.pivot = new Vector2(0.5f, 0.5f);
+        root.sizeDelta = new Vector2(300f, 118f);
+        root.anchoredPosition = anchoredPosition;
+        root.localScale = Vector3.one;
+
+        Image hitArea = root.GetComponent<Image>();
+        hitArea.color = new Color(1f, 1f, 1f, 0f);
+        hitArea.raycastTarget = true;
+
+        CreateSettingsImage(root, "Border", settingsSliderBorderSprite, root.sizeDelta, Vector2.zero, false);
+        RectTransform fill = CreateSettingsImage(root, "Fill", isOn ? settingsSliderOnSprite : settingsSliderOffSprite, new Vector2(240f, 78f), new Vector2(-12f, 0f), false);
+        fill.SetAsFirstSibling();
+        CreateSettingsText(root, "State", isOn ? "ON" : "OFF", new Vector2(-48f, 2f), new Vector2(126f, 74f), 54f);
+        CreateSettingsImage(root, "Handle", settingsSliderHandleSprite, new Vector2(98f, 98f), new Vector2(isOn ? 82f : -82f, 0f), false);
+
+        Button button = root.GetComponent<Button>();
+        button.transition = Selectable.Transition.None;
+        button.targetGraphic = hitArea;
+
+        return root;
+    }
+
+    private void CreateSettingsAudioButton(RectTransform parent, string childName, string label, Sprite icon, bool enabled, Vector2 anchoredPosition)
+    {
+        RectTransform group = GetOrCreateChild(parent, childName);
+        group.anchorMin = new Vector2(0.5f, 0.5f);
+        group.anchorMax = new Vector2(0.5f, 0.5f);
+        group.pivot = new Vector2(0.5f, 0.5f);
+        group.sizeDelta = new Vector2(260f, 330f);
+        group.anchoredPosition = anchoredPosition;
+        group.localScale = Vector3.one;
+
+        CreateSettingsText(group, "Label", label, new Vector2(0f, 120f), new Vector2(240f, 78f), 52f);
+        RectTransform buttonRect = CreateSettingsImage(group, "Button", topBarButtonSprite, new Vector2(200f, 200f), new Vector2(0f, -42f), true);
+        Button button = buttonRect.GetComponent<Button>();
+        if (button == null)
+        {
+            button = buttonRect.gameObject.AddComponent<Button>();
+        }
+
+        button.transition = Selectable.Transition.None;
+        Image image = buttonRect.GetComponent<Image>();
+        image.raycastTarget = true;
+
+        RectTransform iconRect = CreateSettingsImage(buttonRect, "Icon", icon, new Vector2(125f, 125f), Vector2.zero, false);
+        iconRect.localScale = enabled ? Vector3.one : Vector3.one * 0.88f;
+
+        CanvasGroup groupAlpha = iconRect.GetComponent<CanvasGroup>();
+        if (groupAlpha == null)
+        {
+            groupAlpha = iconRect.gameObject.AddComponent<CanvasGroup>();
+        }
+
+        groupAlpha.alpha = enabled ? 1f : 0.45f;
+    }
+
     private RectTransform GetTopBarRoot()
     {
         if (topBarRoot != null)
@@ -747,7 +958,17 @@ public class MainMenuManager : MonoBehaviour
     {
         Transform existing = parent.Find(childName);
         if (existing != null)
+        {
+            foreach (System.Type component in components)
+            {
+                if (component != typeof(RectTransform) && existing.GetComponent(component) == null)
+                {
+                    existing.gameObject.AddComponent(component);
+                }
+            }
+
             return existing as RectTransform;
+        }
 
         GameObject child = new GameObject(childName, typeof(RectTransform));
         foreach (System.Type component in components)
