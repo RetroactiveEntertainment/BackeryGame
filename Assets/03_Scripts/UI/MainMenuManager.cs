@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using DG.Tweening;
+using LeTai.TrueShadow;
 using TMPro;
 
 [ExecuteAlways]
@@ -40,6 +41,7 @@ public class MainMenuManager : MonoBehaviour
     public float navSelectedBackgroundHeight = 300f;
     public float navSelectedBottomBleed = 8f;
     public float navSelectedHorizontalInset = 18f;
+    public float navSelectedBackgroundXOffset = 0f;
     public float navSelectedIconYOffset = 132f;
     public float navDeselectedIconYOffset = 0f;
     public float navLabelYOffset = -52f;
@@ -48,6 +50,15 @@ public class MainMenuManager : MonoBehaviour
     public float navSideBleed = 32f;
     public float navSeparatorWidth = 18f;
     public float navSeparatorHeightRatio = 0.78f;
+
+    [Header("Navbar Main Container Shadow")]
+    public bool navbarMainContainerShadowEnabled = true;
+    public Color navbarMainContainerShadowColor = new Color(0f, 0f, 0f, 0.35f);
+    public float navbarMainContainerShadowSize = 18f;
+    [Range(0f, 1f)]
+    public float navbarMainContainerShadowSpread = 0.05f;
+    public float navbarMainContainerShadowOffsetAngle = 270f;
+    public float navbarMainContainerShadowOffsetDistance = 6f;
 
     [Header("Top Bar Art")]
     public RectTransform topBarRoot;
@@ -397,6 +408,7 @@ public class MainMenuManager : MonoBehaviour
             containerImage.sprite = navbarContainerSprite;
             containerImage.type = Image.Type.Sliced;
             containerImage.raycastTarget = false;
+            ConfigureNavbarMainContainerShadow(bottomBar);
         }
 
         for (int i = 0; i < buttons.Count; i++)
@@ -408,6 +420,38 @@ public class MainMenuManager : MonoBehaviour
         ConfigureNavbarSeparators(bottomBar);
         Canvas.ForceUpdateCanvases();
         PositionNavbarSeparators(currentSelectedIndex);
+    }
+
+    private void ConfigureNavbarMainContainerShadow(RectTransform bottomBar)
+    {
+        TrueShadow shadow = bottomBar.GetComponent<TrueShadow>();
+        if (!navbarMainContainerShadowEnabled)
+        {
+            if (shadow != null)
+            {
+                shadow.enabled = false;
+            }
+
+            return;
+        }
+
+        if (shadow == null)
+        {
+            shadow = bottomBar.gameObject.AddComponent<TrueShadow>();
+        }
+
+        shadow.enabled = true;
+        shadow.Color = navbarMainContainerShadowColor;
+        shadow.Size = navbarMainContainerShadowSize;
+        shadow.Spread = navbarMainContainerShadowSpread;
+        shadow.UseGlobalAngle = false;
+        shadow.OffsetAngle = navbarMainContainerShadowOffsetAngle;
+        shadow.OffsetDistance = navbarMainContainerShadowOffsetDistance;
+        shadow.BlendMode = BlendMode.Normal;
+        shadow.UseCasterAlpha = true;
+        shadow.IgnoreCasterColor = true;
+        shadow.Inset = false;
+        shadow.Cutout = false;
     }
 
     private void PositionNavbarButtons(int selectedIndex)
@@ -476,8 +520,7 @@ public class MainMenuManager : MonoBehaviour
         selectedBackground.anchorMin = new Vector2(0f, 0f);
         selectedBackground.anchorMax = new Vector2(1f, 0f);
         selectedBackground.pivot = new Vector2(0.5f, 0f);
-        selectedBackground.offsetMin = new Vector2(navSelectedHorizontalInset, -navSelectedBottomBleed);
-        selectedBackground.offsetMax = new Vector2(-navSelectedHorizontalInset, navSelectedBackgroundHeight - navSelectedBottomBleed);
+        ApplySelectedBackgroundOffsets(selectedBackground);
         selectedBackground.SetAsFirstSibling();
 
         RectTransform icon = GetOrCreateChild(button, "NavbarIcon", typeof(Image));
@@ -798,22 +841,39 @@ public class MainMenuManager : MonoBehaviour
         {
             item.Icon.DOSizeDelta(new Vector2(iconSize, iconSize), duration).SetEase(Ease.OutBack);
             item.Icon.DOAnchorPosY(iconY, duration).SetEase(Ease.OutBack);
-            item.SelectedBackground.DOSizeDelta(new Vector2(0f, navSelectedBackgroundHeight), duration).SetEase(Ease.OutBack);
-            item.SelectedBackground.DOScale(selectedScale, duration).SetEase(Ease.OutBack);
-            item.SelectedGroup.DOFade(alpha, duration * 0.6f);
+            item.SelectedBackground.DOKill();
+            item.SelectedGroup.DOKill();
+            ApplySelectedBackgroundOffsets(item.SelectedBackground);
+            item.SelectedGroup.alpha = alpha;
+
+            if (selected)
+            {
+                item.SelectedBackground.localScale = Vector3.one;
+            }
+            else
+            {
+                item.SelectedBackground.localScale = Vector3.one * selectedScale;
+            }
+
             item.Label.DOAnchorPosY(navLabelYOffset, duration).SetEase(Ease.OutBack);
-            item.LabelGroup.DOFade(alpha, duration * 0.6f);
+            item.LabelGroup.DOKill();
+            item.LabelGroup.alpha = alpha;
         }
         else
         {
             item.Icon.sizeDelta = new Vector2(iconSize, iconSize);
             item.Icon.anchoredPosition = new Vector2(item.Icon.anchoredPosition.x, iconY);
-            item.SelectedBackground.offsetMin = new Vector2(navSelectedHorizontalInset, -navSelectedBottomBleed);
-            item.SelectedBackground.offsetMax = new Vector2(-navSelectedHorizontalInset, navSelectedBackgroundHeight - navSelectedBottomBleed);
+            ApplySelectedBackgroundOffsets(item.SelectedBackground);
             item.SelectedBackground.localScale = Vector3.one * selectedScale;
             item.SelectedGroup.alpha = alpha;
             item.Label.anchoredPosition = new Vector2(0f, navLabelYOffset);
             item.LabelGroup.alpha = alpha;
         }
+    }
+
+    private void ApplySelectedBackgroundOffsets(RectTransform selectedBackground)
+    {
+        selectedBackground.offsetMin = new Vector2(navSelectedHorizontalInset + navSelectedBackgroundXOffset, -navSelectedBottomBleed);
+        selectedBackground.offsetMax = new Vector2(-navSelectedHorizontalInset + navSelectedBackgroundXOffset, navSelectedBackgroundHeight - navSelectedBottomBleed);
     }
 }

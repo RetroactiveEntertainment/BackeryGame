@@ -15,8 +15,6 @@ public class LoadingScreenController : MonoBehaviour
     [SerializeField] private CanvasGroup previewCanvasGroup;
     [SerializeField] private RectTransform previewImageRect;
     [SerializeField] private RectTransform previewTextRect;
-    [SerializeField] private float enterDuration = 0.55f;
-    [SerializeField] private float exitDuration = 0.45f;
     [SerializeField] private float imageOverscan = 160f;
     [SerializeField] private float loadingTextBottomOffset = 150f;
     [SerializeField] private float loadingTextFontSize = 54f;
@@ -26,6 +24,16 @@ public class LoadingScreenController : MonoBehaviour
     private RectTransform textRect;
     private Tween textPulseTween;
     private bool refreshingPreview;
+    private bool loadingViewBuilt;
+
+    private void Awake()
+    {
+        if (!Application.isPlaying)
+            return;
+
+        BuildLoadingView();
+        canvasGroup.alpha = 1f;
+    }
 
     private void OnEnable()
     {
@@ -51,7 +59,6 @@ public class LoadingScreenController : MonoBehaviour
         BuildLoadingView();
         DontDestroyOnLoad(gameObject);
         DontDestroyOnLoad(canvasGroup.gameObject);
-        yield return PlayEnterAnimation();
 
         AsyncOperation loadOperation = SceneManager.LoadSceneAsync(levelScenePath);
         if (loadOperation == null)
@@ -75,9 +82,9 @@ public class LoadingScreenController : MonoBehaviour
             yield return null;
         }
 
-        yield return null;
-        yield return PlayExitAnimation();
+        yield return new WaitForEndOfFrame();
 
+        textPulseTween?.Kill();
         if (canvasGroup != null)
         {
             Destroy(canvasGroup.gameObject);
@@ -88,13 +95,16 @@ public class LoadingScreenController : MonoBehaviour
 
     private void BuildLoadingView()
     {
+        if (loadingViewBuilt && canvasGroup != null)
+            return;
+
         TryFindPreviewObjects();
 
-        if (previewCanvasGroup != null && previewImageRect != null && previewTextRect != null)
+        if (previewCanvasGroup != null && previewImageRect != null)
         {
             canvasGroup = previewCanvasGroup;
             imageRect = previewImageRect;
-            textRect = previewTextRect;
+            textRect = previewTextRect != null ? previewTextRect : CreateLoadingText(canvasGroup.transform);
             ApplyLoadingViewLayout();
             canvasGroup.gameObject.SetActive(true);
         }
@@ -127,17 +137,13 @@ public class LoadingScreenController : MonoBehaviour
             textRect.SetParent(canvasObject.transform, false);
 
             TextMeshProUGUI text = textObject.GetComponent<TextMeshProUGUI>();
-            text.text = "Loading";
-            text.alignment = TextAlignmentOptions.Center;
-            text.fontStyle = FontStyles.Bold;
-            text.color = Color.white;
-            text.enableWordWrapping = false;
-            text.raycastTarget = false;
+            ConfigureLoadingText(text);
 
             ApplyLoadingViewLayout();
         }
 
         canvasGroup.alpha = 0f;
+        loadingViewBuilt = true;
     }
 
     private void RefreshEditorPreview()
@@ -173,7 +179,7 @@ public class LoadingScreenController : MonoBehaviour
 
     private void TryFindPreviewObjects()
     {
-        if (previewCanvasGroup != null && previewImageRect != null && previewTextRect != null)
+        if (previewCanvasGroup != null && previewImageRect != null)
             return;
 
         GameObject existingCanvas = GameObject.Find("LoadingCanvas");
@@ -183,8 +189,31 @@ public class LoadingScreenController : MonoBehaviour
         previewCanvasGroup = existingCanvas.GetComponent<CanvasGroup>();
         Transform image = existingCanvas.transform.Find("LoadingImage");
         Transform text = existingCanvas.transform.Find("LoadingText");
-        previewImageRect = image as RectTransform;
+        previewImageRect = image != null ? image as RectTransform : existingCanvas.transform as RectTransform;
         previewTextRect = text as RectTransform;
+    }
+
+    private RectTransform CreateLoadingText(Transform parent)
+    {
+        GameObject textObject = new GameObject("LoadingText", typeof(RectTransform), typeof(TextMeshProUGUI));
+        RectTransform rectTransform = textObject.GetComponent<RectTransform>();
+        rectTransform.SetParent(parent, false);
+        ConfigureLoadingText(textObject.GetComponent<TextMeshProUGUI>());
+        previewTextRect = rectTransform;
+        return rectTransform;
+    }
+
+    private void ConfigureLoadingText(TextMeshProUGUI text)
+    {
+        if (text == null)
+            return;
+
+        text.text = "Loading";
+        text.alignment = TextAlignmentOptions.Center;
+        text.fontStyle = FontStyles.Bold;
+        text.color = Color.white;
+        text.enableWordWrapping = false;
+        text.raycastTarget = false;
     }
 
     private void ApplyLoadingViewLayout()
@@ -221,23 +250,4 @@ public class LoadingScreenController : MonoBehaviour
         }
     }
 
-    private IEnumerator PlayEnterAnimation()
-    {
-        Sequence sequence = DOTween.Sequence();
-        sequence.Join(canvasGroup.DOFade(1f, enterDuration * 0.75f));
-        sequence.Join(imageRect.DOScale(1f, enterDuration).SetEase(Ease.OutBack));
-        sequence.Join(textRect.DOAnchorPosY(loadingTextBottomOffset + 18f, enterDuration).From().SetEase(Ease.OutBack));
-        sequence.Join(textRect.DOScale(1.08f, 0.32f).SetLoops(2, LoopType.Yoyo).SetEase(Ease.InOutSine));
-        yield return sequence.WaitForCompletion();
-    }
-
-    private IEnumerator PlayExitAnimation()
-    {
-        Sequence sequence = DOTween.Sequence();
-        sequence.Join(canvasGroup.DOFade(0f, exitDuration).SetEase(Ease.InCubic));
-        sequence.Join(imageRect.DOScale(1.08f, exitDuration).SetEase(Ease.InBack));
-        sequence.Join(textRect.DOScale(0.92f, exitDuration).SetEase(Ease.InBack));
-        sequence.Join(textRect.DOAnchorPosY(loadingTextBottomOffset - 35f, exitDuration).SetEase(Ease.InBack));
-        yield return sequence.WaitForCompletion();
-    }
 }
