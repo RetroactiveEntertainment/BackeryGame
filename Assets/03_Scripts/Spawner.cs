@@ -7,13 +7,13 @@ public class Spawner : MonoBehaviour
 {
     [SerializeField] private int spawnerIndex;
     [SerializeField] private float spawnRate;
-    [SerializeField] private float splineCompletionTime = 5f;
     [SerializeField] private float initialSpawnDelay;
     [SerializeField] private LevelDataSO levelData;
-    [SerializeField] private SplineContainer splineContainer;
     [SerializeField] private SplineComputer splineComputer;
     [SerializeField] private Animator animator;
     [SerializeField] private ParticleSystem smokeVfx;
+    [SerializeField] private ParticleSystem smokeVentVfx;
+    [SerializeField] private AudioSource audioSource;
     [SerializeField] private int arrowMaterialIndex = 2;
     [SerializeField] private float arrowTextureScrollSpeed = 2f;
 
@@ -28,9 +28,9 @@ public class Spawner : MonoBehaviour
 
     private void Start()
     {
-        if (splineContainer == null)
+        if (splineComputer == null)
         {
-            Debug.LogError("SplineContainer not assigned");
+            Debug.LogError("splineComputer not assigned");
             return;
         }
 
@@ -39,6 +39,8 @@ public class Spawner : MonoBehaviour
         if(requiredHeat > 0)
         {
             freezeStatusText.text = requiredHeat.ToString();
+            animator.enabled = false;
+            smokeVentVfx.gameObject.SetActive(false);
             IsFrozen = true;
             return;
         }
@@ -98,11 +100,11 @@ public class Spawner : MonoBehaviour
         if (_spawnCount >= targetList.Count)
             return;
 
-        //Debug.Log($"Spawning {targetList[_spawnCount].name}");
+
         animator.Play("furnaceShot");
         smokeVfx.Play();
+        audioSource.Play();
         GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
-        //Debug.Log($"Spawned {spawnedGo.name}");
 
         if (!spawnedGo.TryGetComponent(out Matchable matchable))
         {
@@ -110,7 +112,7 @@ public class Spawner : MonoBehaviour
             return;
         }
 
-        matchable.Initialize(matchManager, splineContainer, splineCompletionTime, splineComputer);
+        matchable.Initialize(matchManager, splineComputer);
         _spawnCount++;
 
         spawnedGo.SetActive(true);
@@ -126,9 +128,12 @@ public class Spawner : MonoBehaviour
 
         if(requiredHeat <= 0)
         {
+            
             frozenObject.SetActive(false);
             freezeStatusText.gameObject.SetActive(false);
+            smokeVentVfx.gameObject.SetActive(true);
             IsFrozen = false;
+             animator.enabled = true;
             InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate); 
         }
 

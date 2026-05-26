@@ -66,8 +66,7 @@ public class Matchable : MonoBehaviour, IMatchable
         if (IsTouched)
             return;
         splineFollower.follow = false;
-       // splineAnimate.Pause();
-       // RemoveSplineAnimate();
+
         m_matchManager.RegisterMatchable(this);
         IsTouched = true;
     }
@@ -82,15 +81,13 @@ public class Matchable : MonoBehaviour, IMatchable
         Destroy(gameObject);
     }
 
-    public void Initialize(MatchManager matchManager, SplineContainer splineContainer, float splineCompleteDuration, SplineComputer splineComputer)
+    public void Initialize(MatchManager matchManager, SplineComputer splineComputer)
     {
         m_matchManager = matchManager;
-        //splineAnimate.Container = splineContainer;
-       // splineAnimate.Duration = splineCompleteDuration;
         splineFollower.spline = splineComputer;
     }
 
-    // public void RemoveSplineAnimate() => Destroy(splineAnimate);
+
 }
 
 public enum MatchColor
