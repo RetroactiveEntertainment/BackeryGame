@@ -30,7 +30,7 @@ public class MainMenuManager : MonoBehaviour
     public Sprite navbarSeparatorSprite;
 
     [Header("Navbar Labels")]
-    public string[] tabLabels = { "Store", "Leaderboard", "Home", "Settings" };
+    public string[] tabLabels = { "Store", "Leaderboard", "Home", "Journey", "Settings" };
     public TMP_FontAsset navbarLabelFont;
     public float navbarLabelFontSize = 48f;
     public float navbarLabelMinFontSize = 28f;
@@ -440,6 +440,9 @@ public class MainMenuManager : MonoBehaviour
 
     private void ConfigureNavbarVisuals()
     {
+        EnsureNavbarButtonCount();
+        SyncNavbarIconSizeOverrideLists();
+
         navbarItems.Clear();
         navbarSeparators.Clear();
 
@@ -502,6 +505,57 @@ public class MainMenuManager : MonoBehaviour
         shadow.IgnoreCasterColor = true;
         shadow.Inset = false;
         shadow.Cutout = false;
+    }
+
+    private void EnsureNavbarButtonCount()
+    {
+        if (buttons == null)
+        {
+            buttons = new List<RectTransform>();
+        }
+
+        int targetCount = GetDesiredNavbarButtonCount();
+        if (targetCount <= buttons.Count)
+            return;
+
+        RectTransform template = null;
+        foreach (RectTransform button in buttons)
+        {
+            if (button != null)
+            {
+                template = button;
+                break;
+            }
+        }
+
+        RectTransform parent = bottomBarLayoutRect != null ? bottomBarLayoutRect : template != null ? template.parent as RectTransform : null;
+        if (parent == null || template == null)
+            return;
+
+        while (buttons.Count < targetCount)
+        {
+            RectTransform button = Instantiate(template, parent);
+            button.name = $"Button ({buttons.Count})";
+            button.gameObject.layer = template.gameObject.layer;
+            button.SetSiblingIndex(buttons.Count);
+
+            Button buttonComponent = button.GetComponent<Button>();
+            if (buttonComponent != null)
+            {
+                buttonComponent.onClick.RemoveAllListeners();
+            }
+
+            buttons.Add(button);
+        }
+    }
+
+    private int GetDesiredNavbarButtonCount()
+    {
+        int labelCount = tabLabels != null ? tabLabels.Length : 0;
+        int iconCount = navbarIconSprites != null ? navbarIconSprites.Count : 0;
+        int panelCount = panels != null ? panels.Count : 0;
+        int buttonCount = buttons != null ? buttons.Count : 0;
+        return Mathf.Max(buttonCount, labelCount, iconCount, panelCount);
     }
 
     private void PositionNavbarButtons(int selectedIndex)
@@ -1183,7 +1237,7 @@ public class MainMenuManager : MonoBehaviour
 
     private void SyncNavbarIconSizeOverrideLists()
     {
-        int targetCount = buttons != null ? buttons.Count : 0;
+        int targetCount = GetDesiredNavbarButtonCount();
         SyncFloatListCount(navIconDeselectedSizeOverrides, targetCount);
         SyncFloatListCount(navIconSelectedSizeOverrides, targetCount);
     }
