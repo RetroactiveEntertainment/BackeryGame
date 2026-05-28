@@ -14,10 +14,44 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private Slot[] ghostSlots;
     [SerializeField] private GameObject[] matchRewards;
     [SerializeField] private Spawner[] frozenFurnace;
+    [Header("Match SFX")]
+    [SerializeField] private AudioClip matchableClickSfx;
+    [SerializeField] private float matchableClickSfxVolume = 1f;
+    [SerializeField] private AudioClip matchCompleteSfx;
+    [SerializeField] private float matchCompleteSfxVolume = 1f;
+    [Header("Level Music")]
+    [SerializeField] private AudioClip levelMusic;
+    [SerializeField] private float levelMusicVolume = 0.22f;
+    [Header("Matchable Animation")]
+    [SerializeField] private float matchableMoveDuration = 0.28f;
+    [SerializeField] private float matchableShrinkDuration = 0.1f;
+    [SerializeField] private float matchableSquashStretchIntensity = 2.3f;
+    [Header("Slot Appear Animation")]
+    [SerializeField] private float slotAppearDuration = 0.25f;
+    [SerializeField] private float slotAppearPopScale = 1.15f;
+    [Header("Reward Animation")]
+    [SerializeField] private float rewardPopDuration = 0.45f;
+    [SerializeField] private float rewardMoveDuration = 0.45f;
+    [SerializeField] private float rewardShrinkDuration = 0.25f;
+    [SerializeField] private float rewardPopScale = 1f;
     private Coroutine _sortCoroutine;
+    private AudioSource levelMusicSource;
 
     private int _matchCallbackCounter = 0;
     private MatchColor _currentMatchColor = MatchColor.None;
+
+    public float MatchableMoveDuration => matchableMoveDuration;
+    public float MatchableAnticipationDuration => matchableMoveDuration * 0.16f;
+    public float MatchableStretchDuration => matchableMoveDuration * 0.28f;
+    public float MatchableSquashDuration => matchableMoveDuration * 0.25f;
+    public float MatchableReboundDuration => matchableMoveDuration * 0.16f;
+    public float MatchableShrinkDuration => matchableShrinkDuration;
+    public float MatchableSquashStretchIntensity => matchableSquashStretchIntensity;
+
+    public void PlayMatchableClickSfx()
+    {
+        PlayOneShotSfx(matchableClickSfx, matchableClickSfxVolume, "MatchableClickSfx");
+    }
 
     private Dictionary<MatchColor, List<Matchable>> _matchableInfoDict = new Dictionary<MatchColor, List<Matchable>>()
     {
@@ -35,6 +69,16 @@ public class MatchManager : MonoBehaviour
             Destroy(gameObject);
         else
             Instance = this;
+    }
+
+    private void Start()
+    {
+        PlayLevelMusic();
+    }
+
+    private void OnDisable()
+    {
+        levelMusicSource?.Stop();
     }
 
     public int GetEmptySlotIndex()
@@ -108,7 +152,7 @@ public class MatchManager : MonoBehaviour
                 return;
             }
 
-            targetEmptySlot.OccupySlot(matchable);
+            targetEmptySlot.OccupySlot(matchable, true, slotAppearDuration, slotAppearPopScale);
             if (_sortCoroutine != null) StopCoroutine(_sortCoroutine);
             _sortCoroutine = StartCoroutine(SortBoard());
         }
@@ -126,7 +170,7 @@ public class MatchManager : MonoBehaviour
 
     private IEnumerator SortBoard()
     {
-        yield return null; // Wait for the next frame so the objects are definitely destroyed. 
+        yield return new WaitForSeconds(slotAppearDuration);
         var slottedMatchables = GetAllMatchablesInSlots();
 
         foreach (var slot in slots)
@@ -154,7 +198,7 @@ public class MatchManager : MonoBehaviour
                 RemoveMatchable(targetMatchable);
                 targetMatchable.IsTouched = false;
                 slots[index].ClearSlot();
-                ghostSlots[index].OccupySlot(targetMatchable);
+                ghostSlots[index].OccupySlot(targetMatchable, true, slotAppearDuration, slotAppearPopScale);
             }
         }
     }
@@ -162,20 +206,61 @@ public class MatchManager : MonoBehaviour
     private void SpawnReward(MatchColor color)
     {
         Debug.Log("Match color = " + color);
+        PlayMatchCompleteSfx();
         GameObject rewardDessert = Instantiate(matchRewards[(int)color], merchPoint);
 
-        rewardDessert.transform.localScale = Vector3.zero;
-        Vector3 startPos = rewardDessert.transform.position;
+        Vector3 rewardScale = Vector3.one * rewardPopScale;
+        Vector3 squashScale = Vector3.Scale(rewardScale, new Vector3(1.35f, 0.55f, 1.35f));
+        Vector3 popScale = rewardScale * 1.18f;
         Vector3 upPos = matchEndPoint.position; 
 
+        rewardDessert.transform.localScale = squashScale;
+
         DOTween.Sequence()
-            .Append(rewardDessert.transform.DOScale(Vector3.one, 0.75f).SetEase(Ease.OutBack))
-            .Join(rewardDessert.transform.DOMove(upPos, 0.75f).SetEase(Ease.OutQuad))
-            .Append(rewardDessert.transform.DOScale(Vector3.zero, 0.5f).SetEase(Ease.InBack))
+            .Append(rewardDessert.transform.DOScale(popScale, rewardPopDuration * 0.55f).SetEase(Ease.OutBack, 2.6f))
+            .Append(rewardDessert.transform.DOScale(rewardScale, rewardPopDuration * 0.45f).SetEase(Ease.OutQuad))
+            .Append(rewardDessert.transform.DOMove(upPos, rewardMoveDuration).SetEase(Ease.OutQuad))
+            .Append(rewardDessert.transform.DOScale(Vector3.zero, rewardShrinkDuration).SetEase(Ease.InBack))
             .OnComplete(() =>
             {
                 Destroy(rewardDessert);
             });
+    }
+
+    private void PlayMatchCompleteSfx()
+    {
+        PlayOneShotSfx(matchCompleteSfx, matchCompleteSfxVolume, "MatchCompleteSfx");
+    }
+
+    private void PlayOneShotSfx(AudioClip clip, float volume, string objectName)
+    {
+        if (clip == null)
+            return;
+
+        GameObject audioObject = new GameObject(objectName);
+        AudioSource audioSource = audioObject.AddComponent<AudioSource>();
+        audioSource.clip = clip;
+        audioSource.volume = volume;
+        audioSource.spatialBlend = 0f;
+        audioSource.Play();
+        Destroy(audioObject, clip.length);
+    }
+
+    private void PlayLevelMusic()
+    {
+        if (levelMusic == null)
+            return;
+
+        GameObject audioObject = new GameObject("LevelMusic");
+        audioObject.transform.SetParent(transform, false);
+        levelMusicSource = audioObject.AddComponent<AudioSource>();
+        levelMusicSource.clip = levelMusic;
+        levelMusicSource.volume = levelMusicVolume;
+        levelMusicSource.loop = true;
+        levelMusicSource.spatialBlend = 0f;
+        levelMusicSource.priority = 200;
+        levelMusicSource.playOnAwake = false;
+        levelMusicSource.Play();
     }
 
     private void BreakIce()

@@ -140,6 +140,12 @@ MonoBehaviour:
   smokeVfx: {fileID: 3273744763968359261}
   smokeVentVfx: {fileID: 1126900063}
   audioSource: {fileID: 919132149158624991}
+  spawnSfxClip: {fileID: 8300000, guid: 4effe7753a9ddda4387ac7ff322b1a7c, type: 3}
+  spawnSfxVolume: 1
+  railWorkingSfx: {fileID: 8300000, guid: bc547b9e4ea9c77439123de65981390d, type: 3}
+  railWorkingVolume: 0.04
+  furnaceWorkingSfx: {fileID: 8300000, guid: 68f9312867879474bb9a5870905a53fa, type: 3}
+  furnaceWorkingVolume: 0.035
   arrowMaterialIndex: 2
   arrowTextureScrollSpeed: 2
   IsFrozen: 0
@@ -10794,6 +10800,12 @@ MonoBehaviour:
   smokeVfx: {fileID: 559934209}
   smokeVentVfx: {fileID: 648423551}
   audioSource: {fileID: 919132148863177927}
+  spawnSfxClip: {fileID: 8300000, guid: 4effe7753a9ddda4387ac7ff322b1a7c, type: 3}
+  spawnSfxVolume: 1
+  railWorkingSfx: {fileID: 8300000, guid: bc547b9e4ea9c77439123de65981390d, type: 3}
+  railWorkingVolume: 0.04
+  furnaceWorkingSfx: {fileID: 8300000, guid: 68f9312867879474bb9a5870905a53fa, type: 3}
+  furnaceWorkingVolume: 0.035
   arrowMaterialIndex: 2
   arrowTextureScrollSpeed: 2
   IsFrozen: 0
@@ -20279,6 +20291,12 @@ MonoBehaviour:
   - {fileID: 5786662892824032048, guid: 0829b25554fa9904ba3b5396bce88e14, type: 3}
   frozenFurnace:
   - {fileID: 917285274}
+  matchableClickSfx: {fileID: 8300000, guid: a25647f1fce65bb43b3fef3ce31d152a, type: 3}
+  matchableClickSfxVolume: 1
+  matchCompleteSfx: {fileID: 8300000, guid: ae9ac757ba0b39e4f91369d167331c3e, type: 3}
+  matchCompleteSfxVolume: 1
+  levelMusic: {fileID: 8300000, guid: d4ecd7c60ec23a242a74a9cb3f366a5e, type: 3}
+  levelMusicVolume: 0.22
 --- !u!1 &2136680992
 GameObject:
   m_ObjectHideFlags: 0

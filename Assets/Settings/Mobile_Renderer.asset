@@ -21,7 +21,7 @@ MonoBehaviour:
     depthBias: 0.0355
     thickness: 0.01
     contrast: 1.06
-    luminanceProtection: 0.613
+    luminanceProtection: 1
     directionalStrength: 0.87
     directionalOffsetPixels: {x: -4, y: 4}
 --- !u!114 &11400000
@@ -92,7 +92,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 521933c422ef94aa58e7d435b6f8921a, type: 3}
   m_Name: WideOutline
   m_EditorClassIdentifier: Linework::Linework.WideOutline.WideOutline
-  m_Active: 1
+  m_Active: 0
   settings: {fileID: 11400000, guid: b20d0b8423f81cf41b86b104b3d61c42, type: 2}
   shaders:
     mask: {fileID: 4800000, guid: 1ed7bc804a124d559675facf61722b63, type: 3}

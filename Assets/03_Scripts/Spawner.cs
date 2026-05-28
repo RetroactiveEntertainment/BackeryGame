@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.Splines;
 using Dreamteck.Splines;
 using TMPro;
+using DG.Tweening;
 
 public class Spawner : MonoBehaviour
 {
@@ -14,8 +15,18 @@ public class Spawner : MonoBehaviour
     [SerializeField] private ParticleSystem smokeVfx;
     [SerializeField] private ParticleSystem smokeVentVfx;
     [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip spawnSfxClip;
+    [SerializeField] private float spawnSfxVolume = 1f;
+    [Header("Working Loop SFX")]
+    [SerializeField] private AudioClip railWorkingSfx;
+    [SerializeField] private float railWorkingVolume = 0.04f;
+    [SerializeField] private AudioClip furnaceWorkingSfx;
+    [SerializeField] private float furnaceWorkingVolume = 0.035f;
     [SerializeField] private int arrowMaterialIndex = 2;
     [SerializeField] private float arrowTextureScrollSpeed = 2f;
+    [Header("Spawn Pop Animation")]
+    [SerializeField] private float spawnPopDuration = 0.18f;
+    [SerializeField] private float spawnPopScale = 1.18f;
 
     [SerializeField] bool IsFrozen = false;
     [SerializeField] int requiredHeat = 0;
@@ -25,6 +36,8 @@ public class Spawner : MonoBehaviour
     [SerializeField] private MatchManager matchManager;
     private int _spawnCount = 0;
     private Material arrowMaterial;
+    private AudioSource railWorkingSource;
+    private AudioSource furnaceWorkingSource;
 
     private void Start()
     {
@@ -48,9 +61,21 @@ public class Spawner : MonoBehaviour
         InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate); 
         
     }
+
+    private void OnDisable()
+    {
+        railWorkingSource?.Stop();
+        furnaceWorkingSource?.Stop();
+    }
+
     private void Update()
     {
-        MoveArrowChannel();
+        bool working = IsSpawnerWorking();
+
+        if (working)
+            MoveArrowChannel();
+
+        UpdateWorkingLoopSfx(working);
     }
 
     private void MoveArrowChannel()
@@ -103,7 +128,7 @@ public class Spawner : MonoBehaviour
 
         animator.Play("furnaceShot");
         smokeVfx.Play();
-        audioSource.Play();
+        PlaySpawnSfx();
         GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
 
         if (!spawnedGo.TryGetComponent(out Matchable matchable))
@@ -113,9 +138,100 @@ public class Spawner : MonoBehaviour
         }
 
         matchable.Initialize(matchManager, splineComputer);
+        PlaySpawnPop(spawnedGo.transform);
         _spawnCount++;
 
         spawnedGo.SetActive(true);
+    }
+
+    private void PlaySpawnPop(Transform spawnedTransform)
+    {
+        Matchable matchable = spawnedTransform.GetComponent<Matchable>();
+        Vector3 originalScale = matchable != null ? matchable.BaseScale : spawnedTransform.localScale;
+        spawnedTransform.DOKill();
+        spawnedTransform.localScale = Vector3.zero;
+
+        DOTween.Sequence()
+            .Append(spawnedTransform.DOScale(originalScale * spawnPopScale, spawnPopDuration * 0.55f).SetEase(Ease.OutBack))
+            .Append(spawnedTransform.DOScale(originalScale, spawnPopDuration * 0.45f).SetEase(Ease.OutQuad));
+    }
+
+    private void PlaySpawnSfx()
+    {
+        AudioClip clip = GetSpawnSfxClip();
+        if (clip == null)
+            return;
+
+        GameObject audioObject = new GameObject("SpawnSfx");
+        AudioSource oneShotSource = audioObject.AddComponent<AudioSource>();
+        oneShotSource.clip = clip;
+        oneShotSource.outputAudioMixerGroup = audioSource != null ? audioSource.outputAudioMixerGroup : null;
+        oneShotSource.volume = (audioSource != null ? audioSource.volume : 1f) * spawnSfxVolume;
+        oneShotSource.pitch = 1f;
+        oneShotSource.spatialBlend = 0f;
+        oneShotSource.priority = 0;
+        oneShotSource.ignoreListenerPause = true;
+        oneShotSource.playOnAwake = false;
+        oneShotSource.Play();
+        Destroy(audioObject, clip.length + 0.1f);
+    }
+
+    private void UpdateWorkingLoopSfx(bool working)
+    {
+        UpdateLoopSource(ref railWorkingSource, "RailWorkingSfx", railWorkingSfx, railWorkingVolume, working);
+        UpdateLoopSource(ref furnaceWorkingSource, "FurnaceWorkingSfx", furnaceWorkingSfx, furnaceWorkingVolume, working);
+    }
+
+    private void UpdateLoopSource(ref AudioSource source, string objectName, AudioClip clip, float volume, bool shouldPlay)
+    {
+        if (clip == null)
+            return;
+
+        if (source == null)
+        {
+            GameObject audioObject = new GameObject(objectName);
+            audioObject.transform.SetParent(transform, false);
+            source = audioObject.AddComponent<AudioSource>();
+            source.clip = clip;
+            source.loop = true;
+            source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            source.priority = 128;
+        }
+
+        source.volume = volume;
+
+        if (shouldPlay)
+        {
+            if (!source.isPlaying)
+                source.Play();
+        }
+        else if (source.isPlaying)
+        {
+            source.Stop();
+        }
+    }
+
+    private AudioClip GetSpawnSfxClip()
+    {
+        if (spawnSfxClip != null)
+            return spawnSfxClip;
+
+        return audioSource != null ? audioSource.clip : null;
+    }
+
+    private bool IsSpawnerWorking()
+    {
+        return !IsFrozen && HasMoreToSpawn();
+    }
+
+    private bool HasMoreToSpawn()
+    {
+        if (levelData == null || spawnerIndex < 0 || spawnerIndex >= levelData.LevelData.Count)
+            return false;
+
+        var spawnData = levelData.LevelData[spawnerIndex];
+        return spawnData != null && _spawnCount < spawnData.PrefabsToSpawn.Count;
     }
 
     public void RemoveIce()

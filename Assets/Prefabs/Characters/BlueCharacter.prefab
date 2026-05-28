@@ -183,6 +183,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Matchable
   splineFollower: {fileID: -5086665562535385187}
+  matchMoveDuration: 0.12
+  matchAnticipationDuration: 0.18
+  matchStretchDuration: 0.07
+  matchSquashDuration: 0.09
+  matchReboundDuration: 0.08
+  matchShrinkDuration: 0.18
+  matchSquashStretchIntensity: 1.75
+  matchStretchMultiplier: {x: 0.65, y: 1.45, z: 0.65}
+  matchSquashMultiplier: {x: 1.45, y: 0.55, z: 1.45}
   <Color>k__BackingField: 1
 --- !u!114 &-5086665562535385187
 MonoBehaviour:

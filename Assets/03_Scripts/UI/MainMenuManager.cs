@@ -23,35 +23,47 @@ public class MainMenuManager : MonoBehaviour
     [Header("Animation")]
     public float animationDuration = 0.3f;
 
-    [Header("Navbar Art")]
+    [Header("Navbar Sprites")]
     public Sprite navbarContainerSprite;
     public Sprite navbarSelectedSprite;
     public List<Sprite> navbarIconSprites;
     public Sprite navbarSeparatorSprite;
+
+    [Header("Navbar Labels")]
     public string[] tabLabels = { "Store", "Leaderboard", "Home", "Settings" };
     public TMP_FontAsset navbarLabelFont;
     public float navbarLabelFontSize = 48f;
     public float navbarLabelMinFontSize = 28f;
     public bool navbarLabelAutoSize = true;
     public float navbarLabelHeight = 92f;
-    public float navBarHeight = 190f;
+
+    [Header("Navbar Icon Sizes")]
     public float navIconDeselectedSize = 118f;
     public float navIconSelectedSize = 190f;
     [Tooltip("Optional per-navbar-icon deselected sizes. Leave an entry at 0 to use Nav Icon Deselected Size.")]
     public List<float> navIconDeselectedSizeOverrides = new List<float>();
     [Tooltip("Optional per-navbar-icon selected sizes. Leave an entry at 0 to use Nav Icon Selected Size.")]
     public List<float> navIconSelectedSizeOverrides = new List<float>();
+
+    [Header("Navbar Selected Item")]
     public float navSelectedBackgroundWidth = 320f;
     public float navSelectedBackgroundHeight = 300f;
     public float navSelectedBottomBleed = 8f;
     public float navSelectedHorizontalInset = 18f;
     public float navSelectedBackgroundXOffset = 0f;
+    public float navSelectedBackgroundTopCropPixels = 4f;
     public float navSelectedIconYOffset = 132f;
     public float navDeselectedIconYOffset = 0f;
     public float navLabelYOffset = -52f;
+
+    [Header("Navbar Layout")]
+    public float navBarHeight = 190f;
     public float navNormalSlotWeight = 1f;
     public float navSelectedSlotWeight = 1.65f;
     public float navSideBleed = 32f;
+    public float navBackgroundSideBleed = 32f;
+
+    [Header("Navbar Separators")]
     public float navSeparatorWidth = 18f;
     public float navSeparatorHeightRatio = 0.78f;
     public float navSeparatorYOffset = 0f;
@@ -117,6 +129,9 @@ public class MainMenuManager : MonoBehaviour
     private readonly List<RectTransform> navbarSeparators = new List<RectTransform>();
     private Tween screenSlideTween;
     private bool refreshingNavbarPreview;
+    private Sprite cachedCroppedNavbarSelectedSprite;
+    private Sprite cachedCroppedNavbarSelectedSource;
+    private float cachedNavbarSelectedTopCropPixels = -1f;
 
     private class NavbarItemVisual
     {
@@ -413,7 +428,7 @@ public class MainMenuManager : MonoBehaviour
 
         if (bottomBarLayoutRect != null && bottomBarLayoutRect.parent is RectTransform bottomBar)
         {
-            bottomBar.sizeDelta = new Vector2(navSideBleed * 2f, navBarHeight);
+            bottomBar.sizeDelta = new Vector2(navBackgroundSideBleed * 2f, navBarHeight);
             bottomBar.anchoredPosition = new Vector2(0f, bottomBar.anchoredPosition.y);
             bottomBarLayoutRect.offsetMin = new Vector2(-navSideBleed, 0f);
             bottomBarLayoutRect.offsetMax = new Vector2(navSideBleed, 0f);
@@ -548,8 +563,8 @@ public class MainMenuManager : MonoBehaviour
 
         RectTransform selectedBackground = GetOrCreateChild(button, "SelectedBackground", typeof(Image), typeof(CanvasGroup));
         Image selectedImage = selectedBackground.GetComponent<Image>();
-        selectedImage.sprite = navbarSelectedSprite;
-        selectedImage.type = Image.Type.Sliced;
+        selectedImage.sprite = GetNavbarSelectedSprite();
+        selectedImage.type = Image.Type.Simple;
         selectedImage.raycastTarget = false;
         selectedBackground.localScale = Vector3.one;
         selectedBackground.anchorMin = new Vector2(0f, 0f);
@@ -629,6 +644,40 @@ public class MainMenuManager : MonoBehaviour
             return navbarIconSprites[index];
 
         return null;
+    }
+
+    private Sprite GetNavbarSelectedSprite()
+    {
+        if (navbarSelectedSprite == null || navSelectedBackgroundTopCropPixels <= 0f)
+            return navbarSelectedSprite;
+
+        if (cachedCroppedNavbarSelectedSprite != null &&
+            cachedCroppedNavbarSelectedSource == navbarSelectedSprite &&
+            Mathf.Approximately(cachedNavbarSelectedTopCropPixels, navSelectedBackgroundTopCropPixels))
+        {
+            return cachedCroppedNavbarSelectedSprite;
+        }
+
+        Rect rect = navbarSelectedSprite.rect;
+        float cropPixels = Mathf.Clamp(navSelectedBackgroundTopCropPixels, 0f, rect.height - 1f);
+        Rect croppedRect = new Rect(rect.x, rect.y, rect.width, rect.height - cropPixels);
+        Vector2 pivot = navbarSelectedSprite.pivot;
+        pivot.y = Mathf.Min(pivot.y, croppedRect.height);
+
+        cachedCroppedNavbarSelectedSprite = Sprite.Create(
+            navbarSelectedSprite.texture,
+            croppedRect,
+            new Vector2(pivot.x / croppedRect.width, pivot.y / croppedRect.height),
+            navbarSelectedSprite.pixelsPerUnit,
+            0,
+            SpriteMeshType.FullRect,
+            Vector4.zero);
+
+        cachedCroppedNavbarSelectedSprite.name = $"{navbarSelectedSprite.name}_TopCropped";
+        cachedCroppedNavbarSelectedSource = navbarSelectedSprite;
+        cachedNavbarSelectedTopCropPixels = navSelectedBackgroundTopCropPixels;
+
+        return cachedCroppedNavbarSelectedSprite;
     }
 
     private void ConfigureTopBarVisuals()
@@ -1006,10 +1055,12 @@ public class MainMenuManager : MonoBehaviour
             return;
 
         RectTransform separatorRoot = GetOrCreateChild(bottomBar, "NavbarSeparators");
-        separatorRoot.anchorMin = Vector2.zero;
-        separatorRoot.anchorMax = Vector2.one;
-        separatorRoot.offsetMin = Vector2.zero;
-        separatorRoot.offsetMax = Vector2.zero;
+        separatorRoot.anchorMin = bottomBarLayoutRect.anchorMin;
+        separatorRoot.anchorMax = bottomBarLayoutRect.anchorMax;
+        separatorRoot.pivot = bottomBarLayoutRect.pivot;
+        separatorRoot.anchoredPosition = bottomBarLayoutRect.anchoredPosition;
+        separatorRoot.offsetMin = bottomBarLayoutRect.offsetMin;
+        separatorRoot.offsetMax = bottomBarLayoutRect.offsetMax;
         separatorRoot.SetAsFirstSibling();
         bottomBarLayoutRect.SetAsLastSibling();
         for (int i = 1; i < buttons.Count; i++)
@@ -1046,7 +1097,7 @@ public class MainMenuManager : MonoBehaviour
         if (bottomBar == null)
             return;
 
-        float width = bottomBar.rect.width;
+        float width = bottomBarLayoutRect.rect.width;
         if (width <= 0f)
             return;
 
