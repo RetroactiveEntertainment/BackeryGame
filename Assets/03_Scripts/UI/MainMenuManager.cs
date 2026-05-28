@@ -37,6 +37,10 @@ public class MainMenuManager : MonoBehaviour
     public float navBarHeight = 190f;
     public float navIconDeselectedSize = 118f;
     public float navIconSelectedSize = 190f;
+    [Tooltip("Optional per-navbar-icon deselected sizes. Leave an entry at 0 to use Nav Icon Deselected Size.")]
+    public List<float> navIconDeselectedSizeOverrides = new List<float>();
+    [Tooltip("Optional per-navbar-icon selected sizes. Leave an entry at 0 to use Nav Icon Selected Size.")]
+    public List<float> navIconSelectedSizeOverrides = new List<float>();
     public float navSelectedBackgroundWidth = 320f;
     public float navSelectedBackgroundHeight = 300f;
     public float navSelectedBottomBleed = 8f;
@@ -50,6 +54,9 @@ public class MainMenuManager : MonoBehaviour
     public float navSideBleed = 32f;
     public float navSeparatorWidth = 18f;
     public float navSeparatorHeightRatio = 0.78f;
+    public float navSeparatorYOffset = 0f;
+    [Range(0f, 1f)]
+    public float navSeparatorOpacity = 1f;
 
     [Header("Navbar Main Container Shadow")]
     public bool navbarMainContainerShadowEnabled = true;
@@ -171,6 +178,7 @@ public class MainMenuManager : MonoBehaviour
         if (Application.isPlaying || !isActiveAndEnabled)
             return;
 
+        SyncNavbarIconSizeOverrideLists();
         RefreshNavbarPreview();
     }
 
@@ -313,10 +321,10 @@ public class MainMenuManager : MonoBehaviour
 
     private RectTransform GetHomeScreen()
     {
-        if (panels == null || panels.Count == 0 || panels[0] == null)
+        if (panels == null || currentSelectedIndex < 0 || currentSelectedIndex >= panels.Count || panels[currentSelectedIndex] == null)
             return null;
 
-        return panels[0].GetComponent<RectTransform>();
+        return panels[currentSelectedIndex].GetComponent<RectTransform>();
     }
 
     private RectTransform GetConfiguredScreen(int index, RectTransform homeScreen)
@@ -551,6 +559,10 @@ public class MainMenuManager : MonoBehaviour
         selectedBackground.SetAsFirstSibling();
 
         RectTransform icon = GetOrCreateChild(button, "NavbarIcon", typeof(Image));
+        icon.anchorMin = new Vector2(0.5f, 0.5f);
+        icon.anchorMax = new Vector2(0.5f, 0.5f);
+        icon.pivot = new Vector2(0.5f, 0.5f);
+        icon.anchoredPosition = new Vector2(0f, icon.anchoredPosition.y);
         icon.localScale = Vector3.one;
         Image iconImage = icon.GetComponent<Image>();
         if (iconImage != null)
@@ -1007,6 +1019,7 @@ public class MainMenuManager : MonoBehaviour
             Image separatorImage = separator.GetComponent<Image>();
             separatorImage.sprite = navbarSeparatorSprite;
             separatorImage.type = Image.Type.Simple;
+            separatorImage.color = new Color(1f, 1f, 1f, navSeparatorOpacity);
             separatorImage.raycastTarget = false;
             separator.sizeDelta = new Vector2(navSeparatorWidth, navBarHeight * navSeparatorHeightRatio);
             navbarSeparators.Add(separator);
@@ -1043,7 +1056,7 @@ public class MainMenuManager : MonoBehaviour
         {
             cursor += GetNavbarSlotWeight(i, selectedIndex);
             float normalizedDivider = cursor / totalWeight;
-            navbarSeparators[i].anchoredPosition = new Vector2((normalizedDivider - 0.5f) * width, 0f);
+            navbarSeparators[i].anchoredPosition = new Vector2((normalizedDivider - 0.5f) * width, navSeparatorYOffset);
         }
     }
 
@@ -1053,13 +1066,14 @@ public class MainMenuManager : MonoBehaviour
             return;
 
         NavbarItemVisual item = navbarItems[index];
-        float iconSize = selected ? navIconSelectedSize : navIconDeselectedSize;
+        float iconSize = GetNavbarIconSize(index, selected);
         float iconY = selected ? navSelectedIconYOffset : navDeselectedIconYOffset;
         float alpha = selected ? 1f : 0f;
         float selectedScale = selected ? 1f : 0.88f;
 
         if (duration > 0f)
         {
+            item.Icon.DOKill();
             item.Icon.DOSizeDelta(new Vector2(iconSize, iconSize), duration).SetEase(Ease.OutBack);
             item.Icon.DOAnchorPosY(iconY, duration).SetEase(Ease.OutBack);
             item.SelectedBackground.DOKill();
@@ -1082,7 +1096,7 @@ public class MainMenuManager : MonoBehaviour
         }
         else
         {
-            item.Icon.sizeDelta = new Vector2(iconSize, iconSize);
+            ApplyNavbarIconSize(item.Icon, iconSize);
             item.Icon.anchoredPosition = new Vector2(item.Icon.anchoredPosition.x, iconY);
             ApplySelectedBackgroundOffsets(item.SelectedBackground);
             item.SelectedBackground.localScale = Vector3.one * selectedScale;
@@ -1096,5 +1110,46 @@ public class MainMenuManager : MonoBehaviour
     {
         selectedBackground.offsetMin = new Vector2(navSelectedHorizontalInset + navSelectedBackgroundXOffset, -navSelectedBottomBleed);
         selectedBackground.offsetMax = new Vector2(-navSelectedHorizontalInset + navSelectedBackgroundXOffset, navSelectedBackgroundHeight - navSelectedBottomBleed);
+    }
+
+    private float GetNavbarIconSize(int index, bool selected)
+    {
+        List<float> overrides = selected ? navIconSelectedSizeOverrides : navIconDeselectedSizeOverrides;
+        float fallbackSize = selected ? navIconSelectedSize : navIconDeselectedSize;
+
+        if (overrides != null && index >= 0 && index < overrides.Count && overrides[index] > 0f)
+            return overrides[index];
+
+        return fallbackSize;
+    }
+
+    private void ApplyNavbarIconSize(RectTransform icon, float size)
+    {
+        icon.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal, size);
+        icon.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, size);
+        icon.sizeDelta = new Vector2(size, size);
+    }
+
+    private void SyncNavbarIconSizeOverrideLists()
+    {
+        int targetCount = buttons != null ? buttons.Count : 0;
+        SyncFloatListCount(navIconDeselectedSizeOverrides, targetCount);
+        SyncFloatListCount(navIconSelectedSizeOverrides, targetCount);
+    }
+
+    private void SyncFloatListCount(List<float> values, int targetCount)
+    {
+        if (values == null)
+            return;
+
+        while (values.Count < targetCount)
+        {
+            values.Add(0f);
+        }
+
+        while (values.Count > targetCount)
+        {
+            values.RemoveAt(values.Count - 1);
+        }
     }
 }
