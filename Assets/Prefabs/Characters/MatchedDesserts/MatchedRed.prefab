@@ -100,7 +100,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6536485334824916682}
   m_Layer: 0
-  m_Name: Red_Pie
+  m_Name: MatchedRed
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

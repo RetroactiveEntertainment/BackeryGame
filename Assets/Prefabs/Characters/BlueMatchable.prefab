@@ -104,7 +104,7 @@ GameObject:
   - component: {fileID: 2195435981880541877}
   - component: {fileID: -5086665562535385187}
   m_Layer: 6
-  m_Name: BlueCharacter
+  m_Name: BlueMatchable
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
