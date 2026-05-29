@@ -137,7 +137,7 @@ public class Spawner : MonoBehaviour
             return;
         }
 
-        matchable.Initialize(matchManager, splineComputer);
+        matchable.Initialize(matchManager, splineComputer, this, _spawnCount);
         PlaySpawnPop(spawnedGo.transform);
         _spawnCount++;
 
@@ -253,5 +253,28 @@ public class Spawner : MonoBehaviour
             InvokeRepeating(nameof(Spawn), initialSpawnDelay, spawnRate); 
         }
 
+    }
+
+    public void RespawnMatchable(int ID)
+    {
+        var targetList = levelData.LevelData[spawnerIndex].PrefabsToSpawn;
+        --_spawnCount;
+
+        animator.Play("furnaceShot");
+        smokeVfx.Play();
+        PlaySpawnSfx();
+        GameObject spawnedGo = Instantiate(targetList[ID]);
+
+        if (!spawnedGo.TryGetComponent(out Matchable matchable))
+        {
+            Debug.LogError($"No Matchable component found on {spawnedGo.name}");
+            return;
+        }
+
+        matchable.Initialize(matchManager, splineComputer, this, _spawnCount);
+        PlaySpawnPop(spawnedGo.transform);
+        _spawnCount++;
+
+        spawnedGo.SetActive(true);
     }
 }

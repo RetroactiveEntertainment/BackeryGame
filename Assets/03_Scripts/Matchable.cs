@@ -11,6 +11,8 @@ public class Matchable : MonoBehaviour, IMatchable
     [SerializeField] private SplineFollower splineFollower;
 
     private MatchManager m_matchManager;
+    private Spawner spawner;
+    private int matchableID;
     private bool _destroyedByMatch;
     private Tween _merchTween;
     private Vector3 baseScale = Vector3.one;
@@ -29,6 +31,7 @@ public class Matchable : MonoBehaviour, IMatchable
         if (!IsTouched)
         {
             Debug.Log("You lost a point!");
+            MatchManager.Instance.ShowLostGamePanel(spawner, matchableID);
             return;
         }
         if (OccupyingSlot)
@@ -127,8 +130,10 @@ public class Matchable : MonoBehaviour, IMatchable
         Destroy(gameObject);
     }
 
-    public void Initialize(MatchManager matchManager, SplineComputer splineComputer)
+    public void Initialize(MatchManager matchManager, SplineComputer splineComputer, Spawner spawnerID, int ID)
     {
+        spawner = spawnerID;
+        matchableID = ID;
         m_matchManager = matchManager;
         splineFollower.spline = splineComputer;
         baseScale = transform.localScale;

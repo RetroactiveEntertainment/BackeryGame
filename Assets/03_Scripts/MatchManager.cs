@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class MatchManager : MonoBehaviour
 {
@@ -14,6 +15,14 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private Slot[] ghostSlots;
     [SerializeField] private GameObject[] matchRewards;
     [SerializeField] private Spawner[] frozenFurnace;
+    [SerializeField] private GameObject LostGamePanel, WinGamePanel;
+    [SerializeField] private LevelDataSO leveldata;
+    private int levelmatchableCount = 0;
+    private int matchedCount = 0;
+
+    private Spawner secondChanceSpawner;
+    private int secondChanceMatchableID;
+
     [Header("Match SFX")]
     [SerializeField] private AudioClip matchableClickSfx;
     [SerializeField] private float matchableClickSfxVolume = 1f;
@@ -212,7 +221,7 @@ public class MatchManager : MonoBehaviour
         Vector3 rewardScale = Vector3.one * rewardPopScale;
         Vector3 squashScale = Vector3.Scale(rewardScale, new Vector3(1.35f, 0.55f, 1.35f));
         Vector3 popScale = rewardScale * 1.18f;
-        Vector3 upPos = matchEndPoint.position; 
+        Vector3 upPos = matchEndPoint.position;
 
         rewardDessert.transform.localScale = squashScale;
 
@@ -224,6 +233,7 @@ public class MatchManager : MonoBehaviour
             .OnComplete(() =>
             {
                 Destroy(rewardDessert);
+                CheckGameStatus();
             });
     }
 
@@ -261,17 +271,70 @@ public class MatchManager : MonoBehaviour
         levelMusicSource.priority = 200;
         levelMusicSource.playOnAwake = false;
         levelMusicSource.Play();
+
+        ReadLevelData();
     }
 
     private void BreakIce()
     {
-        if(frozenFurnace.Count() > 0)
+        if (frozenFurnace.Count() > 0)
         {
             for (int i = 0; i < frozenFurnace.Count(); i++)
             {
                 frozenFurnace[i].RemoveIce();
             }
         }
+    }
+
+    public void ShowLostGamePanel(Spawner spawner, int matchableID)
+    {
+        LostGamePanel.SetActive(true);
+        Time.timeScale = 0f;
+        secondChanceSpawner = spawner;
+        secondChanceMatchableID = matchableID;
+    }
+
+    private void ShowWinGamePanel()
+    {
+        WinGamePanel.SetActive(true);
+    }
+
+    public void PlayAgain()
+    {
+        //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    public void ContinueGame()
+    {
+        Time.timeScale = 1f;
+        LostGamePanel.SetActive(false);
+
+        if (secondChanceSpawner != null)
+        {
+            secondChanceSpawner.RespawnMatchable(secondChanceMatchableID);
+        }
+    }
+
+    private void ReadLevelData()
+    {
+        foreach (var item in leveldata.LevelData)
+        {
+            levelmatchableCount += item.PrefabsToSpawn.Count();
+        }
+
+        levelmatchableCount = levelmatchableCount / 3;
+        Debug.Log("Level matchable count = " + levelmatchableCount);
+    }
+
+    private void CheckGameStatus()
+    {
+        ++matchedCount;
+        Debug.Log("Matched object = " + matchedCount);
+
+        if (levelmatchableCount > matchedCount)
+            return;
+
+        ShowWinGamePanel();
     }
 }
 
