@@ -288,6 +288,17 @@ public class MatchManager : MonoBehaviour
 
     public void ShowLostGamePanel(Spawner spawner, int matchableID)
     {
+        if (LostGamePanel == null)
+        {
+            Debug.Log("LostGamePanel is NULL - not assigned in inspector!");
+            return;
+        }
+
+        if (!LostGamePanel.activeInHierarchy)
+        {
+            Debug.Log("LostGamePanel is not active in hierarchy");
+        }
+
         LostGamePanel.SetActive(true);
         Time.timeScale = 0f;
         secondChanceSpawner = spawner;
@@ -301,7 +312,7 @@ public class MatchManager : MonoBehaviour
 
     public void PlayAgain()
     {
-        //SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 
     public void ContinueGame()
@@ -317,6 +328,7 @@ public class MatchManager : MonoBehaviour
 
     private void ReadLevelData()
     {
+        Time.timeScale = 1f;
         foreach (var item in leveldata.LevelData)
         {
             levelmatchableCount += item.PrefabsToSpawn.Count();
