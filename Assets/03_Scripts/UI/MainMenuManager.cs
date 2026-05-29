@@ -5,6 +5,9 @@ using UnityEngine.UI;
 using DG.Tweening;
 using LeTai.TrueShadow;
 using TMPro;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 [ExecuteAlways]
 public class MainMenuManager : MonoBehaviour
@@ -129,6 +132,7 @@ public class MainMenuManager : MonoBehaviour
     private readonly List<RectTransform> navbarSeparators = new List<RectTransform>();
     private Tween screenSlideTween;
     private bool refreshingNavbarPreview;
+    private bool navbarPreviewRefreshQueued;
     private Sprite cachedCroppedNavbarSelectedSprite;
     private Sprite cachedCroppedNavbarSelectedSource;
     private float cachedNavbarSelectedTopCropPixels = -1f;
@@ -185,7 +189,7 @@ public class MainMenuManager : MonoBehaviour
         if (Application.isPlaying)
             return;
 
-        RefreshNavbarPreview();
+        QueueNavbarPreviewRefresh();
     }
 
     private void OnValidate()
@@ -194,7 +198,7 @@ public class MainMenuManager : MonoBehaviour
             return;
 
         SyncNavbarIconSizeOverrideLists();
-        RefreshNavbarPreview();
+        QueueNavbarPreviewRefresh();
     }
 
     public void SwitchButton(int selectedIndex)
@@ -240,7 +244,7 @@ public class MainMenuManager : MonoBehaviour
 
         if (!Application.isPlaying)
         {
-            RefreshNavbarPreview();
+            QueueNavbarPreviewRefresh();
             return;
         }
 
@@ -289,6 +293,31 @@ public class MainMenuManager : MonoBehaviour
             refreshingNavbarPreview = false;
         }
     }
+
+    private void QueueNavbarPreviewRefresh()
+    {
+#if UNITY_EDITOR
+        if (navbarPreviewRefreshQueued)
+            return;
+
+        navbarPreviewRefreshQueued = true;
+        EditorApplication.delayCall += RunQueuedNavbarPreviewRefresh;
+#else
+        RefreshNavbarPreview();
+#endif
+    }
+
+#if UNITY_EDITOR
+    private void RunQueuedNavbarPreviewRefresh()
+    {
+        navbarPreviewRefreshQueued = false;
+
+        if (this == null || Application.isPlaying || !isActiveAndEnabled)
+            return;
+
+        RefreshNavbarPreview();
+    }
+#endif
 
     private void ConfigureScreens()
     {
