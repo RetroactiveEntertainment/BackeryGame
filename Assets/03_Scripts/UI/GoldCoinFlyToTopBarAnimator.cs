@@ -1,9 +1,14 @@
 using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
 {
+    private const float GoldFillStartDistancePixels = 96f;
+
     [Header("References")]
     [SerializeField] private RectTransform goldTargetIcon;
     [SerializeField] private GameObject coinPrefab;
@@ -12,6 +17,7 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
 
     [Header("Coin")]
     [SerializeField] private Vector3 coinScale = Vector3.one * 0.2f;
+    [SerializeField, Range(0.05f, 1f)] private float targetCoinScaleMultiplier = 0.25f;
     [SerializeField] private float distanceFromCamera = 10f;
     [SerializeField] private int coinCount = 3;
 
@@ -28,7 +34,17 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
     [SerializeField] private float targetPunchScale = 0.16f;
     [SerializeField] private float targetPunchDuration = 0.18f;
 
+    [Header("SFX")]
+    [SerializeField] private AudioSource sfxSource;
+    [SerializeField] private AudioClip goldFillSfx;
+    [SerializeField] private AudioClip goldFinishSfx;
+    [SerializeField, Range(0f, 1f)] private float goldFillVolume = 1f;
+    [SerializeField, Range(0f, 1f)] private float goldFinishVolume = 1f;
+    [SerializeField, Range(0.1f, 3f)] private float goldFillLoopPitch = 1f;
+
     private readonly List<Tween> activeTweens = new List<Tween>();
+    private int activeCoinFlights;
+    private bool goldFillLoopPlaying;
 
     private Camera CoinCamera => coinCamera != null ? coinCamera : Camera.main;
 
@@ -36,6 +52,17 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
     {
         KillActiveTweens();
     }
+
+#if UNITY_EDITOR
+    private void OnValidate()
+    {
+        if (goldFillSfx == null)
+            goldFillSfx = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/01_Art/Sound FX/Coin/Gold_SFX1.wav");
+
+        if (goldFinishSfx == null)
+            goldFinishSfx = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/01_Art/Sound FX/Coin/Gold_SFX2.mp3");
+    }
+#endif
 
     public void Play()
     {
@@ -84,24 +111,42 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
         GameObject coin = Instantiate(coinPrefab, sourceWorldPosition, Quaternion.identity);
         Transform coinTransform = coin.transform;
         coinTransform.localScale = Vector3.zero;
+        activeCoinFlights++;
 
         Sequence sequence = DOTween.Sequence();
         sequence.SetDelay(index * stagger);
         sequence.Append(coinTransform.DOScale(coinScale, spreadDuration).SetEase(Ease.OutBack));
         sequence.Join(coinTransform.DOMove(scatterWorldPosition, spreadDuration).SetEase(Ease.OutQuad));
         sequence.AppendInterval(collectDelay);
-        sequence.Append(coinTransform.DOPath(
+        Tween flyTween = coinTransform.DOPath(
             new[] { arcWorldPosition, targetWorldPosition },
             flyDuration,
             PathType.CatmullRom,
-            PathMode.Full3D).SetEase(Ease.InOutCubic));
+            PathMode.Full3D)
+            .SetEase(Ease.InOutCubic)
+            .OnUpdate(() =>
+            {
+                Vector2 coinScreenPosition = camera.WorldToScreenPoint(coinTransform.position);
+                if (!goldFillLoopPlaying && Vector2.Distance(coinScreenPosition, targetScreenPosition) <= GoldFillStartDistancePixels)
+                    PlayGoldFillLoop();
+            });
+
+        sequence.Append(flyTween);
         sequence.Join(coinTransform.DORotate(new Vector3(0f, 720f, -360f), flyDuration, RotateMode.FastBeyond360).SetRelative());
-        sequence.Join(coinTransform.DOScale(coinScale * 0.25f, flyDuration).SetEase(Ease.InQuad));
-        sequence.OnComplete(() =>
+        sequence.Join(coinTransform.DOScale(coinScale * targetCoinScaleMultiplier, flyDuration).SetEase(Ease.InQuad));
+        sequence.AppendCallback(() =>
         {
+            PlayGoldFillLoop();
             PunchTargetIcon();
             Destroy(coin);
+            activeCoinFlights = Mathf.Max(0, activeCoinFlights - 1);
+            if (activeCoinFlights == 0)
+            {
+                StopGoldFillLoop();
+                PlaySfx(goldFinishSfx, goldFinishVolume);
+            }
         });
+        sequence.OnKill(() => activeTweens.Remove(sequence));
 
         activeTweens.Add(sequence);
     }
@@ -132,11 +177,72 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
 
     private void KillActiveTweens()
     {
-        foreach (Tween tween in activeTweens)
+        for (int i = activeTweens.Count - 1; i >= 0; i--)
         {
+            Tween tween = activeTweens[i];
             tween?.Kill();
         }
 
         activeTweens.Clear();
+        activeCoinFlights = 0;
+        StopGoldFillLoop();
+    }
+
+    private void PlaySfx(AudioClip clip, float volume)
+    {
+        if (clip == null)
+            return;
+
+        AudioSource source = GetSfxSource();
+        if (source == null)
+            return;
+
+        source.volume = 1f;
+        source.PlayOneShot(clip, volume);
+    }
+
+    private void PlayGoldFillLoop()
+    {
+        if (goldFillSfx == null || goldFillLoopPlaying)
+            return;
+
+        AudioSource source = GetSfxSource();
+        if (source == null)
+            return;
+
+        source.clip = goldFillSfx;
+        source.volume = goldFillVolume;
+        source.pitch = goldFillLoopPitch;
+        source.loop = true;
+        source.time = 0f;
+        source.Play();
+        goldFillLoopPlaying = true;
+    }
+
+    private void StopGoldFillLoop()
+    {
+        if (!goldFillLoopPlaying || sfxSource == null)
+            return;
+
+        sfxSource.Stop();
+        sfxSource.volume = 1f;
+        sfxSource.loop = false;
+        sfxSource.pitch = 1f;
+        sfxSource.clip = null;
+        goldFillLoopPlaying = false;
+    }
+
+    private AudioSource GetSfxSource()
+    {
+        if (sfxSource == null)
+        {
+            sfxSource = GetComponent<AudioSource>();
+            if (sfxSource == null)
+                sfxSource = gameObject.AddComponent<AudioSource>();
+        }
+
+        sfxSource.playOnAwake = false;
+        sfxSource.spatialBlend = 0f;
+        return sfxSource;
     }
 }
