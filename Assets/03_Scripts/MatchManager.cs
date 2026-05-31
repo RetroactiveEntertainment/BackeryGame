@@ -15,11 +15,10 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private Slot[] ghostSlots;
     [SerializeField] private GameObject[] matchRewards;
     [SerializeField] private Spawner[] frozenFurnace;
-    [SerializeField] private GameObject LostGamePanel, WinGamePanel;
     [SerializeField] private LevelDataSO leveldata;
+    [SerializeField] private GameUIManager gameUIManager;
     private int levelmatchableCount = 0;
     private int matchedCount = 0;
-
     private Spawner secondChanceSpawner;
     private int secondChanceMatchableID;
 
@@ -286,44 +285,30 @@ public class MatchManager : MonoBehaviour
         }
     }
 
-    public void ShowLostGamePanel(Spawner spawner, int matchableID)
+    public void LostCondition(Spawner spawner, int matchableID)
     {
-        if (LostGamePanel == null)
-        {
-            Debug.Log("LostGamePanel is NULL - not assigned in inspector!");
-            return;
-        }
+        gameUIManager.OpenLostPanel();
 
-        if (!LostGamePanel.activeInHierarchy)
-        {
-            Debug.Log("LostGamePanel is not active in hierarchy");
-        }
-
-        LostGamePanel.SetActive(true);
-        Time.timeScale = 0f;
         secondChanceSpawner = spawner;
         secondChanceMatchableID = matchableID;
     }
 
-    private void ShowWinGamePanel()
+    private void LevelEnd()
     {
-        WinGamePanel.SetActive(true);
+        var playergold = GoldManager.Instance.GetGold();
+        playergold += 5;
+        GoldManager.Instance.SetGold(playergold);
+
+        gameUIManager.OpenWinPanel();
     }
 
-    public void PlayAgain()
+    public void TryAgain()
     {
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-    }
-
-    public void ContinueGame()
-    {
-        Time.timeScale = 1f;
-        LostGamePanel.SetActive(false);
-
         if (secondChanceSpawner != null)
         {
             secondChanceSpawner.RespawnMatchable(secondChanceMatchableID);
         }
+
     }
 
     private void ReadLevelData()
@@ -346,7 +331,7 @@ public class MatchManager : MonoBehaviour
         if (levelmatchableCount > matchedCount)
             return;
 
-        ShowWinGamePanel();
+        LevelEnd();
     }
 }
 

@@ -31,7 +31,7 @@ public class Matchable : MonoBehaviour, IMatchable
         if (!IsTouched)
         {
             Debug.Log("You lost a point!");
-            m_matchManager.ShowLostGamePanel(spawner, matchableID);
+            m_matchManager.LostCondition(spawner, matchableID);
             return;
         }
         if (OccupyingSlot)
