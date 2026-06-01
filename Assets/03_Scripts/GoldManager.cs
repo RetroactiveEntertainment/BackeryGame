@@ -4,6 +4,8 @@ public class GoldManager : MonoBehaviour
 {
     [SerializeField] private int playergold;
     public static GoldManager Instance { get; private set; }
+
+    private bool rewardShow = false;
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -11,11 +13,8 @@ public class GoldManager : MonoBehaviour
         else
             Instance = this;
 
-            DontDestroyOnLoad(this.gameObject);
-    }
+        DontDestroyOnLoad(this.gameObject);
 
-    void Start()
-    {
         GetPlayerStat();
     }
 
@@ -28,9 +27,21 @@ public class GoldManager : MonoBehaviour
     {
         playergold = gold;
         PlayerPrefs.SetInt("PlayerGold", playergold);
+
+        rewardShow = true;
     }
     public int GetGold()
     {
         return playergold;
+    }
+
+    public bool GetRewardStatus()
+    {
+        return rewardShow;
+    }
+
+    public void RewardShown()
+    {
+        rewardShow = false;
     }
 }

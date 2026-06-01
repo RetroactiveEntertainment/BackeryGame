@@ -32,7 +32,7 @@ public class MainMenuManagerEditor : Editor
         DrawSection(ref navbarLayoutOpen, "Navbar Layout", "navBarHeight", "navNormalSlotWeight", "navSelectedSlotWeight", "navSideBleed", "navBackgroundSideBleed");
         DrawSection(ref navbarSeparatorsOpen, "Navbar Separators", "navSeparatorWidth", "navSeparatorHeightRatio", "navSeparatorYOffset", "navSeparatorOpacity");
         DrawSection(ref navbarShadowOpen, "Navbar Main Container Shadow", "navbarMainContainerShadowEnabled", "navbarMainContainerShadowColor", "navbarMainContainerShadowSize", "navbarMainContainerShadowSpread", "navbarMainContainerShadowOffsetAngle", "navbarMainContainerShadowOffsetDistance");
-        DrawSection(ref topBarOpen, "Top Bar", "topBarRoot", "topBarContainerSprite", "topBarProfileSprite", "topBarSettingsSprite", "topBarPlusSprite", "topBarHeartSprite", "topBarGoldSprite", "topBarButtonSprite", "topBarFont", "autoBuildTopBar", "topBarHeight", "topBarTopOffset");
+        DrawSection(ref topBarOpen, "Top Bar", "goldText", "goldAnimscript","topBarRoot", "topBarContainerSprite", "topBarProfileSprite", "topBarSettingsSprite", "topBarPlusSprite", "topBarHeartSprite", "topBarGoldSprite", "topBarButtonSprite", "topBarFont", "autoBuildTopBar", "topBarHeight", "topBarTopOffset");
 
         serializedObject.ApplyModifiedProperties();
     }

@@ -84,6 +84,8 @@ public class MainMenuManager : MonoBehaviour
 
     [Header("Top Bar Art")]
     public RectTransform topBarRoot;
+    public TextMeshProUGUI goldText;
+    public GoldCoinFlyToTopBarAnimator goldAnimscript;
     public Sprite topBarContainerSprite;
     public Sprite topBarProfileSprite;
     public Sprite topBarSettingsSprite;
@@ -182,6 +184,8 @@ public class MainMenuManager : MonoBehaviour
             SetNavbarItemState(currentSelectedIndex, true, 0f);
             PositionScreens(currentSelectedIndex);
         }
+
+        UpdateGold();
     }
 
     private void OnEnable()
@@ -1284,6 +1288,21 @@ public class MainMenuManager : MonoBehaviour
         while (values.Count > targetCount)
         {
             values.RemoveAt(values.Count - 1);
+        }
+    }
+    
+    private void UpdateGold()
+    {
+        int gold = GoldManager.Instance.GetGold();
+        bool rewardAnim = GoldManager.Instance.GetRewardStatus();
+
+        goldText.text = gold.ToString();
+
+        if(rewardAnim == true)
+        {
+            //anim gir
+            goldAnimscript.Play();
+            GoldManager.Instance.RewardShown();
         }
     }
 }

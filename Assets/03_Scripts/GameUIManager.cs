@@ -25,6 +25,11 @@ public class GameUIManager : MonoBehaviour
         WinGamePanel.SetActive(true);
     }
 
+    public void ReturnMain()
+    {
+        SceneManager.LoadScene(1);
+    }
+
     public void OpenLostPanel()
     {
 
