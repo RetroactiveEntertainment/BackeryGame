@@ -3,6 +3,7 @@ using UnityEngine;
 public class GoldManager : MonoBehaviour
 {
     [SerializeField] private int playergold;
+    [SerializeField] private int previousGold;
     public static GoldManager Instance { get; private set; }
 
     private bool rewardShow = false;
@@ -25,6 +26,7 @@ public class GoldManager : MonoBehaviour
 
     public void SetGold(int gold)
     {
+        previousGold = playergold;
         playergold = gold;
         PlayerPrefs.SetInt("PlayerGold", playergold);
 
@@ -44,4 +46,10 @@ public class GoldManager : MonoBehaviour
     {
         rewardShow = false;
     }
+
+    public int GetPreviousGold()
+    {
+        return previousGold;
+    }
+
 }

@@ -1290,19 +1290,35 @@ public class MainMenuManager : MonoBehaviour
             values.RemoveAt(values.Count - 1);
         }
     }
-    
+
     private void UpdateGold()
     {
         int gold = GoldManager.Instance.GetGold();
+        int previousGold = GoldManager.Instance.GetPreviousGold();
         bool rewardAnim = GoldManager.Instance.GetRewardStatus();
 
-        goldText.text = gold.ToString();
 
-        if(rewardAnim == true)
+        if (rewardAnim == true)
         {
             //anim gir
             goldAnimscript.Play();
+            StartGoldCountAnimation(previousGold, gold);
             GoldManager.Instance.RewardShown();
+        }
+
+        goldText.text = gold.ToString();
+    }
+
+    private void StartGoldCountAnimation(int from, int to)
+    {
+        if (from < to)
+        {
+            DOTween.To(
+                () => from,
+                value => goldText.text = Mathf.RoundToInt(value).ToString(),
+                to,
+                0.6f
+            ).SetEase(Ease.OutQuad);
         }
     }
 }
