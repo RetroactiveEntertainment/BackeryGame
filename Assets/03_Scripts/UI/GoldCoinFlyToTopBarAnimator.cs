@@ -64,12 +64,12 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
     }
 #endif
 
-    public void Play()
+    public void Play(int coinAmount)
     {
         RectTransform source = sourcePoint != null ? sourcePoint : transform as RectTransform;
         if (source == null)
             return;
-
+        coinCount = coinAmount;
         Vector2 screenPosition = RectTransformUtility.WorldToScreenPoint(GetCanvasCamera(source), source.position);
         PlayFromScreenPosition(screenPosition, coinCount);
     }

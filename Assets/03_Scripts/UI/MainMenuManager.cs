@@ -1296,12 +1296,12 @@ public class MainMenuManager : MonoBehaviour
         int gold = GoldManager.Instance.GetGold();
         int previousGold = GoldManager.Instance.GetPreviousGold();
         bool rewardAnim = GoldManager.Instance.GetRewardStatus();
-
+        int coinAmount = gold - previousGold;
 
         if (rewardAnim == true)
         {
             //anim gir
-            goldAnimscript.Play();
+            goldAnimscript.Play(coinAmount);
             StartGoldCountAnimation(previousGold, gold);
             GoldManager.Instance.RewardShown();
         }
