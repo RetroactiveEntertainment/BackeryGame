@@ -115,7 +115,6 @@ public class Matchable : MonoBehaviour, IMatchable
             return;
         splineFollower.follow = false;
 
-        m_matchManager.PlayMatchableClickSfx();
         m_matchManager.RegisterMatchable(this);
         IsTouched = true;
     }

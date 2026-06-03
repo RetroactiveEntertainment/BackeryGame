@@ -25,6 +25,7 @@ public class MatchManager : MonoBehaviour
     [Header("Match SFX")]
     [SerializeField] private AudioClip matchableClickSfx;
     [SerializeField] private float matchableClickSfxVolume = 1f;
+    [SerializeField] private float matchableClickSfxLeadTime = 0.07f;
     [SerializeField] private AudioClip matchCompleteSfx;
     [SerializeField] private float matchCompleteSfxVolume = 1f;
     [Header("Level Music")]
@@ -160,7 +161,7 @@ public class MatchManager : MonoBehaviour
                 return;
             }
 
-            targetEmptySlot.OccupySlot(matchable, true, slotAppearDuration, slotAppearPopScale);
+            targetEmptySlot.OccupySlot(matchable, true, slotAppearDuration, slotAppearPopScale, PlayMatchableClickSfx, matchableClickSfxLeadTime);
             if (_sortCoroutine != null) StopCoroutine(_sortCoroutine);
             _sortCoroutine = StartCoroutine(SortBoard());
         }
