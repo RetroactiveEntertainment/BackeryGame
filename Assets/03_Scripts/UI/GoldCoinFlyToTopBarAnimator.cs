@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System;
 using DG.Tweening;
 using UnityEngine;
 #if UNITY_EDITOR
@@ -45,6 +46,7 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
     private readonly List<Tween> activeTweens = new List<Tween>();
     private int activeCoinFlights;
     private bool goldFillLoopPlaying;
+    private Action onAllCoinsArrived;
 
     private Camera CoinCamera => coinCamera != null ? coinCamera : Camera.main;
 
@@ -66,9 +68,19 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
 
     public void Play(int coinAmount)
     {
+        Play(coinAmount, null);
+    }
+
+    public void Play(int coinAmount, Action onComplete)
+    {
         RectTransform source = sourcePoint != null ? sourcePoint : transform as RectTransform;
         if (source == null)
+        {
+            onComplete?.Invoke();
             return;
+        }
+
+        onAllCoinsArrived = onComplete;
         coinCount = coinAmount;
         Vector2 screenPosition = RectTransformUtility.WorldToScreenPoint(GetCanvasCamera(source), source.position);
         PlayFromScreenPosition(screenPosition, coinCount);
@@ -88,7 +100,11 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
     {
         Camera camera = CoinCamera;
         if (coinPrefab == null || goldTargetIcon == null || camera == null || coinCount <= 0)
+        {
+            onAllCoinsArrived?.Invoke();
+            onAllCoinsArrived = null;
             return;
+        }
 
         Vector2 targetScreenPosition = RectTransformUtility.WorldToScreenPoint(GetCanvasCamera(), goldTargetIcon.position);
 
@@ -100,7 +116,7 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
 
     private void SpawnCoin(Camera camera, Vector2 sourceScreenPosition, Vector2 targetScreenPosition, int index)
     {
-        Vector2 scatterScreenPosition = sourceScreenPosition + Random.insideUnitCircle * scatterRadiusPixels;
+        Vector2 scatterScreenPosition = sourceScreenPosition + UnityEngine.Random.insideUnitCircle * scatterRadiusPixels;
         Vector2 arcScreenPosition = Vector2.Lerp(scatterScreenPosition, targetScreenPosition, 0.55f) + Vector2.up * arcHeightPixels;
 
         Vector3 sourceWorldPosition = ScreenToWorld(camera, sourceScreenPosition);
@@ -144,6 +160,8 @@ public class GoldCoinFlyToTopBarAnimator : MonoBehaviour
             {
                 StopGoldFillLoop();
                 PlaySfx(goldFinishSfx, goldFinishVolume);
+                onAllCoinsArrived?.Invoke();
+                onAllCoinsArrived = null;
             }
         });
         sequence.OnKill(() => activeTweens.Remove(sequence));

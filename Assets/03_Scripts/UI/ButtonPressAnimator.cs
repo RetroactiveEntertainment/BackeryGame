@@ -23,6 +23,18 @@ public class ButtonPressAnimator : MonoBehaviour, IPointerDownHandler, IPointerU
         CacheTextColors();
     }
 
+    public void CopySettingsFrom(ButtonPressAnimator source)
+    {
+        if (source == null)
+            return;
+
+        pressedScale = source.pressedScale;
+        clickPopScale = source.clickPopScale;
+        pressDuration = source.pressDuration;
+        releaseDuration = source.releaseDuration;
+        pressedTextColor = source.pressedTextColor;
+    }
+
     private void CacheTextColors()
     {
         childTexts = GetComponentsInChildren<TMP_Text>(true);

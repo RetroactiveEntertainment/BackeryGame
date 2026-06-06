@@ -22,7 +22,8 @@ public class LoadingScreenController : MonoBehaviour
     private CanvasGroup canvasGroup;
     private RectTransform imageRect;
     private RectTransform textRect;
-    private Tween textPulseTween;
+    private Tween textFadeTween;
+    private Tween imageZoomTween;
     private bool refreshingPreview;
     private bool loadingViewBuilt;
 
@@ -67,14 +68,15 @@ public class LoadingScreenController : MonoBehaviour
         loadOperation.allowSceneActivation = false;
 
         float elapsed = 0f;
-        textPulseTween = textRect.DOScale(1.06f, 0.45f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+        PlayLoadingAnimation();
         while (loadOperation.progress < 0.9f || elapsed < minimumDisplayTime)
         {
             elapsed += Time.deltaTime;
+            UpdateLoadingDots(elapsed);
             yield return null;
         }
 
-        textPulseTween?.Kill();
+        StopLoadingAnimation();
         loadOperation.allowSceneActivation = true;
 
         while (!loadOperation.isDone)
@@ -84,7 +86,7 @@ public class LoadingScreenController : MonoBehaviour
 
         yield return new WaitForEndOfFrame();
 
-        textPulseTween?.Kill();
+        StopLoadingAnimation();
         if (canvasGroup != null)
         {
             Destroy(canvasGroup.gameObject);
@@ -96,7 +98,10 @@ public class LoadingScreenController : MonoBehaviour
     private void BuildLoadingView()
     {
         if (loadingViewBuilt && canvasGroup != null)
+        {
+            ApplyLoadingViewLayout();
             return;
+        }
 
         TryFindPreviewObjects();
 
@@ -214,6 +219,44 @@ public class LoadingScreenController : MonoBehaviour
         text.color = Color.white;
         text.enableWordWrapping = false;
         text.raycastTarget = false;
+    }
+
+    private void PlayLoadingAnimation()
+    {
+        StopLoadingAnimation();
+
+        TextMeshProUGUI text = textRect.GetComponent<TextMeshProUGUI>();
+        Image image = imageRect.GetComponent<Image>();
+
+        if (text != null)
+        {
+            text.alpha = 1f;
+            textFadeTween = text.DOFade(0.65f, 0.75f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+        }
+
+        if (image != null)
+        {
+            imageRect.localScale = Vector3.one * 1.08f;
+            imageZoomTween = imageRect.DOScale(1.14f, 2.2f).SetLoops(-1, LoopType.Yoyo).SetEase(Ease.InOutSine);
+        }
+    }
+
+    private void StopLoadingAnimation()
+    {
+        textFadeTween?.Kill();
+        imageZoomTween?.Kill();
+        textFadeTween = null;
+        imageZoomTween = null;
+    }
+
+    private void UpdateLoadingDots(float elapsed)
+    {
+        TextMeshProUGUI text = textRect.GetComponent<TextMeshProUGUI>();
+        if (text == null)
+            return;
+
+        int dotCount = Mathf.FloorToInt(elapsed / 0.35f) % 4;
+        text.text = "Loading" + new string('.', dotCount);
     }
 
     private void ApplyLoadingViewLayout()

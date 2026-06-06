@@ -169,6 +169,7 @@ public class MainMenuManager : MonoBehaviour
         ConfigureTopBarVisuals();
         ConfigureScreens();
         ConfigurePlayButton();
+        ConfigureExistingSettingsButtonFeedback();
 
         for (int i = 0; i < buttons.Count; i++)
         {
@@ -283,6 +284,7 @@ public class MainMenuManager : MonoBehaviour
             ConfigureBottomBarLayout();
             ConfigureNavbarVisuals();
             ConfigureTopBarVisuals();
+            ConfigureExistingSettingsButtonFeedback();
 
             for (int i = 0; i < buttons.Count; i++)
             {
@@ -955,6 +957,7 @@ public class MainMenuManager : MonoBehaviour
         Button button = root.GetComponent<Button>();
         button.transition = Selectable.Transition.None;
         button.targetGraphic = hitArea;
+        EnsurePlayButtonPressFeedback(root);
 
         return root;
     }
@@ -980,6 +983,7 @@ public class MainMenuManager : MonoBehaviour
         button.transition = Selectable.Transition.None;
         Image image = buttonRect.GetComponent<Image>();
         image.raycastTarget = true;
+        EnsurePlayButtonPressFeedback(buttonRect);
 
         RectTransform iconRect = CreateSettingsImage(buttonRect, "Icon", icon, new Vector2(125f, 125f), Vector2.zero, false);
         iconRect.localScale = enabled ? Vector3.one : Vector3.one * 0.88f;
@@ -991,6 +995,39 @@ public class MainMenuManager : MonoBehaviour
         }
 
         groupAlpha.alpha = enabled ? 1f : 0.45f;
+    }
+
+    private void EnsurePlayButtonPressFeedback(RectTransform buttonRect)
+    {
+        if (buttonRect == null)
+            return;
+
+        ButtonPressAnimator animator = buttonRect.GetComponent<ButtonPressAnimator>();
+        if (animator == null)
+        {
+            animator = buttonRect.gameObject.AddComponent<ButtonPressAnimator>();
+        }
+
+        if (playButton != null)
+        {
+            animator.CopySettingsFrom(playButton.GetComponent<ButtonPressAnimator>());
+        }
+    }
+
+    private void ConfigureExistingSettingsButtonFeedback()
+    {
+        RectTransform settingsRoot = GetSettingsPanelRoot();
+        if (settingsRoot == null)
+            return;
+
+        Button[] settingsButtons = settingsRoot.GetComponentsInChildren<Button>(true);
+        for (int i = 0; i < settingsButtons.Length; i++)
+        {
+            if (settingsButtons[i] == null)
+                continue;
+
+            EnsurePlayButtonPressFeedback(settingsButtons[i].transform as RectTransform);
+        }
     }
 
     private RectTransform GetTopBarRoot()
@@ -1300,10 +1337,18 @@ public class MainMenuManager : MonoBehaviour
 
         if (rewardAnim == true)
         {
-            //anim gir
-            goldAnimscript.Play(coinAmount);
-            StartGoldCountAnimation(previousGold, gold);
+            goldText.text = previousGold.ToString();
+            if (goldAnimscript != null)
+            {
+                goldAnimscript.Play(coinAmount, () => StartGoldCountAnimation(previousGold, gold));
+            }
+            else
+            {
+                StartGoldCountAnimation(previousGold, gold);
+            }
+
             GoldManager.Instance.RewardShown();
+            return;
         }
 
         goldText.text = gold.ToString();
