@@ -16,6 +16,8 @@ public class CameraEnvironmentBackground : MonoBehaviour
     private MeshFilter backgroundFilter;
     private Material backgroundMaterial;
 
+    private static readonly string[] TextureProperties = { "_BaseMap", "_MainTex", "_BaseColorMap" };
+
     private void OnEnable()
     {
         targetCamera = GetComponent<Camera>();
@@ -78,19 +80,27 @@ public class CameraEnvironmentBackground : MonoBehaviour
 
         if (backgroundMaterial == null)
         {
-            Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+            Shader shader = FindBackgroundShader();
             if (shader == null)
-                shader = Shader.Find("Unlit/Texture");
+            {
+                Debug.LogWarning("Environment background shader could not be found. Add an unlit/sprite shader to Always Included Shaders.");
+                return;
+            }
 
             backgroundMaterial = new Material(shader);
             backgroundMaterial.name = "Environment Background Material";
             backgroundMaterial.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
-            backgroundMaterial.SetFloat("_Cull", 0f);
+            backgroundMaterial.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Geometry - 10;
+            SetMaterialFloatIfPresent(backgroundMaterial, "_Cull", 0f);
+            SetMaterialFloatIfPresent(backgroundMaterial, "_Surface", 0f);
+            SetMaterialFloatIfPresent(backgroundMaterial, "_ZWrite", 1f);
+            SetMaterialFloatIfPresent(backgroundMaterial, "_ZTest", (float)UnityEngine.Rendering.CompareFunction.LessEqual);
         }
 
         backgroundRenderer.sharedMaterial = backgroundMaterial;
         backgroundRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         backgroundRenderer.receiveShadows = false;
+        backgroundRenderer.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
     }
 
     private void UpdateBackground()
@@ -98,9 +108,10 @@ public class CameraEnvironmentBackground : MonoBehaviour
         if (targetCamera == null || backgroundTransform == null || backgroundMaterial == null || environmentTexture == null)
             return;
 
-        backgroundMaterial.mainTexture = environmentTexture;
-        backgroundMaterial.SetTexture("_BaseMap", environmentTexture);
-        backgroundTransform.localPosition = new Vector3(0f, 0f, Mathf.Clamp(backgroundDistance, targetCamera.nearClipPlane + 0.01f, targetCamera.farClipPlane - 0.01f));
+        SetMaterialTexture(backgroundMaterial, environmentTexture);
+
+        float distance = Mathf.Clamp(backgroundDistance, targetCamera.nearClipPlane + 0.01f, targetCamera.farClipPlane - 1f);
+        backgroundTransform.localPosition = new Vector3(0f, 0f, distance);
         backgroundTransform.localRotation = Quaternion.identity;
 
         float viewHeight;
@@ -133,6 +144,44 @@ public class CameraEnvironmentBackground : MonoBehaviour
         }
 
         backgroundTransform.localScale = new Vector3(backgroundWidth * coverPadding, backgroundHeight * coverPadding, 1f);
+    }
+
+    private static Shader FindBackgroundShader()
+    {
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit");
+        if (shader != null)
+            return shader;
+
+        shader = Shader.Find("Universal Render Pipeline/2D/Sprite-Unlit-Default");
+        if (shader != null)
+            return shader;
+
+        shader = Shader.Find("Sprites/Default");
+        if (shader != null)
+            return shader;
+
+        return Shader.Find("Unlit/Texture");
+    }
+
+    private static void SetMaterialTexture(Material material, Texture2D texture)
+    {
+        material.mainTexture = texture;
+        for (int i = 0; i < TextureProperties.Length; i++)
+        {
+            if (material.HasProperty(TextureProperties[i]))
+                material.SetTexture(TextureProperties[i], texture);
+        }
+
+        if (material.HasProperty("_BaseColor"))
+            material.SetColor("_BaseColor", Color.white);
+        if (material.HasProperty("_Color"))
+            material.SetColor("_Color", Color.white);
+    }
+
+    private static void SetMaterialFloatIfPresent(Material material, string propertyName, float value)
+    {
+        if (material.HasProperty(propertyName))
+            material.SetFloat(propertyName, value);
     }
 
     private static Mesh CreateQuadMesh()

@@ -27,6 +27,7 @@ public class Spawner : MonoBehaviour
     [Header("Spawn Pop Animation")]
     [SerializeField] private float spawnPopDuration = 0.18f;
     [SerializeField] private float spawnPopScale = 1.18f;
+    [SerializeField] private float spawnInputDelay = 0.18f;
 
     [SerializeField] bool IsFrozen = false;
     [SerializeField] int requiredHeat = 0;
@@ -121,23 +122,35 @@ public class Spawner : MonoBehaviour
 
     private void Spawn()
     {
+        if (levelData == null || spawnerIndex < 0 || spawnerIndex >= levelData.LevelData.Count)
+            return;
+
         var targetList = levelData.LevelData[spawnerIndex].PrefabsToSpawn;
         if (_spawnCount >= targetList.Count)
             return;
 
+        GameObject prefab = targetList[_spawnCount];
+        if (prefab == null)
+        {
+            Debug.LogError($"Spawner {spawnerIndex} has a null prefab at index {_spawnCount}.");
+            _spawnCount++;
+            return;
+        }
 
         animator.Play("furnaceShot");
         smokeVfx.Play();
         PlaySpawnSfx();
-        GameObject spawnedGo = Instantiate(targetList[_spawnCount]);
+        GameObject spawnedGo = Instantiate(prefab);
 
         if (!spawnedGo.TryGetComponent(out Matchable matchable))
         {
             Debug.LogError($"No Matchable component found on {spawnedGo.name}");
+            Destroy(spawnedGo);
             return;
         }
 
         matchable.Initialize(matchManager, splineComputer, this, _spawnCount);
+        matchable.DelayTouch(spawnInputDelay);
         PlaySpawnPop(spawnedGo.transform);
         _spawnCount++;
 
@@ -257,8 +270,12 @@ public class Spawner : MonoBehaviour
 
     public void RespawnMatchable(int ID)
     {
+        if (levelData == null || spawnerIndex < 0 || spawnerIndex >= levelData.LevelData.Count)
+            return;
+
         var targetList = levelData.LevelData[spawnerIndex].PrefabsToSpawn;
-        --_spawnCount;
+        if (ID < 0 || ID >= targetList.Count || targetList[ID] == null)
+            return;
 
         animator.Play("furnaceShot");
         smokeVfx.Play();
@@ -268,10 +285,13 @@ public class Spawner : MonoBehaviour
         if (!spawnedGo.TryGetComponent(out Matchable matchable))
         {
             Debug.LogError($"No Matchable component found on {spawnedGo.name}");
+            Destroy(spawnedGo);
             return;
         }
 
-        matchable.Initialize(matchManager, splineComputer, this, _spawnCount);
+        _spawnCount = Mathf.Max(0, _spawnCount - 1);
+        matchable.Initialize(matchManager, splineComputer, this, ID);
+        matchable.DelayTouch(spawnInputDelay);
         PlaySpawnPop(spawnedGo.transform);
         _spawnCount++;
 

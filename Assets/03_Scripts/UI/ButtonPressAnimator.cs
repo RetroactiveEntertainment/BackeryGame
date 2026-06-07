@@ -95,12 +95,13 @@ public class ButtonPressAnimator : MonoBehaviour, IPointerDownHandler, IPointerU
         Sequence sequence = DOTween.Sequence();
         sequence.Append(transform.DOScale(originalScale * clickPopScale, releaseDuration * 0.5f).SetEase(Ease.OutQuad));
         sequence.Append(transform.DOScale(originalScale, releaseDuration).SetEase(Ease.OutBack));
+        sequence.SetUpdate(true);
     }
 
     private void AnimateScale(Vector3 targetScale, float duration, Ease ease)
     {
         transform.DOKill();
-        transform.DOScale(targetScale, duration).SetEase(ease);
+        transform.DOScale(targetScale, duration).SetEase(ease).SetUpdate(true);
     }
 
     private void SetTextColor(Color vertexColor, Color faceColor)

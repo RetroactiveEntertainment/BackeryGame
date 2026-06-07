@@ -1,9 +1,7 @@
 using DG.Tweening;
 using Dreamteck.Splines;
 using System;
-using System.Collections;
 using UnityEngine;
-using UnityEngine.Splines;
 
 public class Matchable : MonoBehaviour, IMatchable
 {
@@ -14,29 +12,22 @@ public class Matchable : MonoBehaviour, IMatchable
     private Spawner spawner;
     private int matchableID;
     private bool _destroyedByMatch;
+    private bool _lostReported;
+    private bool _isRegisteringTouch;
+    private float _touchAllowedAtTime;
     private Tween _merchTween;
     private Vector3 baseScale = Vector3.one;
     public Slot OccupyingSlot { get; set; }
 
-    private void Start()
-    {
-       // splineAnimate.Completed += OnSplineAnimateCompleted;
-    }
-
     public void OnDestroy()
     {
         _merchTween?.Kill();
-        if (_destroyedByMatch)
-            return;
-        if (!IsTouched)
-        {
-            Debug.Log("You lost a point!");
-            m_matchManager.LostCondition(spawner, matchableID);
-            return;
-        }
+
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
-        m_matchManager.RemoveMatchable(this);
+
+        if (IsTouched || _destroyedByMatch)
+            m_matchManager?.RemoveMatchable(this);
     }
 
     [field: SerializeField] public MatchColor Color { get; set; }
@@ -44,13 +35,13 @@ public class Matchable : MonoBehaviour, IMatchable
 
     public void OnLost()
     {
-        if (IsTouched) return;
-        Debug.Log("You lost a point!");
+        ReportLost();
     }
 
     public void OnMatched(Transform point, Action onCompleteCallback = null)
     {
         _destroyedByMatch = true;
+
         if (OccupyingSlot)
             OccupyingSlot.ClearSlot();
 
@@ -109,23 +100,55 @@ public class Matchable : MonoBehaviour, IMatchable
         return rootTransform;
     }
 
-    public void OnTouched()
+    public bool OnTouched()
     {
-        if (IsTouched)
-            return;
-        splineFollower.follow = false;
+        if (IsTouched || _isRegisteringTouch || Time.unscaledTime < _touchAllowedAtTime || m_matchManager == null)
+            return false;
 
-        m_matchManager.RegisterMatchable(this);
-        IsTouched = true;
+        _isRegisteringTouch = true;
+        bool wasFollowing = splineFollower != null && splineFollower.follow;
+
+        try
+        {
+            if (splineFollower != null)
+                splineFollower.follow = false;
+
+            if (!m_matchManager.RegisterMatchable(this, out bool completedMatch))
+            {
+                if (splineFollower != null)
+                    splineFollower.follow = wasFollowing;
+                return false;
+            }
+
+            if (!completedMatch)
+                HapticFeedback.PlaySelection();
+
+            IsTouched = true;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            if (splineFollower != null)
+                splineFollower.follow = wasFollowing;
+
+            Debug.LogException(exception, this);
+            return false;
+        }
+        finally
+        {
+            _isRegisteringTouch = false;
+        }
     }
 
     public void OnSplineEnd()
     {
+        ReportLost();
         Destroy(gameObject);
     }
+
     private void OnSplineAnimateCompleted()
     {
-        EventBus<LosePointEvent>.Raise(new LosePointEvent());
+        ReportLost();
         Destroy(gameObject);
     }
 
@@ -135,12 +158,32 @@ public class Matchable : MonoBehaviour, IMatchable
         matchableID = ID;
         m_matchManager = matchManager;
         splineFollower.spline = splineComputer;
+        IsTouched = false;
+        _destroyedByMatch = false;
+        _lostReported = false;
+        _isRegisteringTouch = false;
+        _touchAllowedAtTime = 0f;
         baseScale = transform.localScale;
     }
 
+    public void DelayTouch(float delay)
+    {
+        _touchAllowedAtTime = Time.unscaledTime + Mathf.Max(0f, delay);
+    }
+
+    private void ReportLost()
+    {
+        if (_lostReported || IsTouched || _destroyedByMatch)
+            return;
+
+        _lostReported = true;
+        _touchAllowedAtTime = float.PositiveInfinity;
+
+        Debug.Log("You lost a point!");
+        m_matchManager?.LostCondition(spawner, matchableID);
+    }
+
     public Vector3 BaseScale => baseScale;
-
-
 }
 
 public enum MatchColor
@@ -157,7 +200,7 @@ public enum MatchColor
 public interface ITouchable
 {
     public bool IsTouched { get; set; }
-    public void OnTouched();
+    public bool OnTouched();
 }
 
 public interface IMatchable : ITouchable

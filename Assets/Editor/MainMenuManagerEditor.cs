@@ -21,6 +21,8 @@ public class MainMenuManagerEditor : Editor
     {
         serializedObject.Update();
 
+        EditorGUI.BeginChangeCheck();
+
         DrawSection(ref bottomBarOpen, "Bottom Bar Buttons", "buttons");
         DrawSection(ref panelsOpen, "Panels", "panels", "screenSlideDuration");
         DrawSection(ref playFlowOpen, "Play Flow", "playButton", "loadingSceneName");
@@ -30,11 +32,20 @@ public class MainMenuManagerEditor : Editor
         DrawSection(ref navbarIconsOpen, "Navbar Icon Sizes", "navIconDeselectedSize", "navIconSelectedSize", "navIconDeselectedSizeOverrides", "navIconSelectedSizeOverrides");
         DrawSection(ref navbarSelectedOpen, "Navbar Selected Item", "navSelectedBackgroundWidth", "navSelectedBackgroundHeight", "navSelectedBottomBleed", "navSelectedHorizontalInset", "navSelectedBackgroundXOffset", "navSelectedBackgroundTopCropPixels", "navSelectedIconYOffset", "navDeselectedIconYOffset", "navLabelYOffset");
         DrawSection(ref navbarLayoutOpen, "Navbar Layout", "navBarHeight", "navNormalSlotWeight", "navSelectedSlotWeight", "navSideBleed", "navBackgroundSideBleed");
-        DrawSection(ref navbarSeparatorsOpen, "Navbar Separators", "navSeparatorWidth", "navSeparatorHeightRatio", "navSeparatorYOffset", "navSeparatorOpacity");
+        DrawSection(ref navbarSeparatorsOpen, "Navbar Separators", "navSeparatorWidth", "navSeparatorHeightRatio", "navSeparatorYOffset", "navSeparatorColor", "navSeparatorOpacity");
         DrawSection(ref navbarShadowOpen, "Navbar Main Container Shadow", "navbarMainContainerShadowEnabled", "navbarMainContainerShadowColor", "navbarMainContainerShadowSize", "navbarMainContainerShadowSpread", "navbarMainContainerShadowOffsetAngle", "navbarMainContainerShadowOffsetDistance");
         DrawSection(ref topBarOpen, "Top Bar", "goldText", "goldAnimscript","topBarRoot", "topBarContainerSprite", "topBarProfileSprite", "topBarSettingsSprite", "topBarPlusSprite", "topBarHeartSprite", "topBarGoldSprite", "topBarButtonSprite", "topBarFont", "autoBuildTopBar", "topBarHeight", "topBarTopOffset");
 
         serializedObject.ApplyModifiedProperties();
+
+        if (EditorGUI.EndChangeCheck())
+        {
+            foreach (Object editedTarget in targets)
+            {
+                if (editedTarget is MainMenuManager manager)
+                    manager.RefreshEditorPreview();
+            }
+        }
     }
 
     private void DrawSection(ref bool open, string title, params string[] propertyNames)

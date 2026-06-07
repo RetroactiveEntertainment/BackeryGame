@@ -11,9 +11,12 @@ public class UIButtonClickSoundManager : MonoBehaviour
 
     [SerializeField] private AudioClip clickClip;
     [SerializeField, Range(0f, 1f)] private float volume = 1f;
+    [SerializeField] private ButtonPressAnimator pressAnimationTemplate;
+    [SerializeField] private float runtimeButtonScanInterval = 2f;
 
     private readonly HashSet<Button> registeredButtons = new HashSet<Button>();
     private AudioSource audioSource;
+    private Coroutine continuousRegistrationCoroutine;
 
     private void Awake()
     {
@@ -43,12 +46,18 @@ public class UIButtonClickSoundManager : MonoBehaviour
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= HandleSceneLoaded;
+        if (continuousRegistrationCoroutine != null)
+        {
+            StopCoroutine(continuousRegistrationCoroutine);
+            continuousRegistrationCoroutine = null;
+        }
     }
 
     private void Start()
     {
         RegisterAllButtons();
         StartCoroutine(RegisterButtonsForInitialFrames());
+        continuousRegistrationCoroutine = StartCoroutine(RegisterButtonsContinuously());
     }
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
@@ -67,6 +76,17 @@ public class UIButtonClickSoundManager : MonoBehaviour
         }
     }
 
+    private IEnumerator RegisterButtonsContinuously()
+    {
+        WaitForSecondsRealtime wait = new WaitForSecondsRealtime(Mathf.Max(0.25f, runtimeButtonScanInterval));
+        while (true)
+        {
+            yield return wait;
+            RemoveMissingButtons();
+            RegisterAllButtons();
+        }
+    }
+
     private void RegisterAllButtons()
     {
         Button[] buttons = FindObjectsOfType<Button>(true);
@@ -78,11 +98,49 @@ public class UIButtonClickSoundManager : MonoBehaviour
 
     private void RegisterButton(Button button)
     {
-        if (button == null || registeredButtons.Contains(button))
+        if (button == null)
+            return;
+
+        EnsurePressAnimation(button);
+
+        if (registeredButtons.Contains(button))
             return;
 
         button.onClick.AddListener(PlayClick);
         registeredButtons.Add(button);
+    }
+
+    private void EnsurePressAnimation(Button button)
+    {
+        ButtonPressAnimator animator = button.GetComponent<ButtonPressAnimator>();
+        if (animator == null)
+        {
+            animator = button.gameObject.AddComponent<ButtonPressAnimator>();
+        }
+
+        ButtonPressAnimator template = GetPressAnimationTemplate(animator);
+        if (template != null && template != animator)
+        {
+            animator.CopySettingsFrom(template);
+        }
+    }
+
+    private ButtonPressAnimator GetPressAnimationTemplate(ButtonPressAnimator fallback)
+    {
+        if (pressAnimationTemplate != null)
+            return pressAnimationTemplate;
+
+        ButtonPressAnimator[] animators = FindObjectsOfType<ButtonPressAnimator>(true);
+        for (int i = 0; i < animators.Length; i++)
+        {
+            if (animators[i] != null && animators[i] != fallback)
+            {
+                pressAnimationTemplate = animators[i];
+                return pressAnimationTemplate;
+            }
+        }
+
+        return fallback;
     }
 
     private void RemoveMissingButtons()

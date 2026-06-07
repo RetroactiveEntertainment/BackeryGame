@@ -70,6 +70,7 @@ public class MainMenuManager : MonoBehaviour
     public float navSeparatorWidth = 18f;
     public float navSeparatorHeightRatio = 0.78f;
     public float navSeparatorYOffset = 0f;
+    public Color navSeparatorColor = Color.white;
     [Range(0f, 1f)]
     public float navSeparatorOpacity = 1f;
 
@@ -132,6 +133,9 @@ public class MainMenuManager : MonoBehaviour
     private readonly List<RectTransform> screenRects = new List<RectTransform>();
     private readonly List<NavbarItemVisual> navbarItems = new List<NavbarItemVisual>();
     private readonly List<RectTransform> navbarSeparators = new List<RectTransform>();
+    private RectTransform navbarSelectedContainer;
+    private CanvasGroup navbarSelectedContainerGroup;
+    private Tween navbarSelectedContainerTween;
     private Tween screenSlideTween;
     private bool refreshingNavbarPreview;
     private bool navbarPreviewRefreshQueued;
@@ -143,8 +147,6 @@ public class MainMenuManager : MonoBehaviour
     {
         public RectTransform Button;
         public RectTransform Icon;
-        public RectTransform SelectedBackground;
-        public CanvasGroup SelectedGroup;
         public RectTransform Label;
         public CanvasGroup LabelGroup;
     }
@@ -206,6 +208,19 @@ public class MainMenuManager : MonoBehaviour
         QueueNavbarPreviewRefresh();
     }
 
+#if UNITY_EDITOR
+    public void RefreshEditorPreview()
+    {
+        if (Application.isPlaying || !isActiveAndEnabled)
+            return;
+
+        SyncNavbarIconSizeOverrideLists();
+        RefreshNavbarPreview();
+        EditorApplication.QueuePlayerLoopUpdate();
+        SceneView.RepaintAll();
+    }
+#endif
+
     public void SwitchButton(int selectedIndex)
     {
         if (selectedIndex == currentSelectedIndex)
@@ -215,6 +230,7 @@ public class MainMenuManager : MonoBehaviour
 
         PositionNavbarButtons(selectedIndex);
         PositionNavbarSeparators(selectedIndex);
+        PositionNavbarSelectedContainer(selectedIndex, animationDuration);
 
         SetNavbarItemState(selectedIndex, true, animationDuration);
 
@@ -260,6 +276,7 @@ public class MainMenuManager : MonoBehaviour
 
         PositionNavbarButtons(currentSelectedIndex);
         PositionNavbarSeparators(currentSelectedIndex);
+        PositionNavbarSelectedContainer(currentSelectedIndex, 0f);
         PositionScreens(currentSelectedIndex);
     }
 
@@ -293,6 +310,7 @@ public class MainMenuManager : MonoBehaviour
 
             PositionNavbarButtons(currentSelectedIndex);
             PositionNavbarSeparators(currentSelectedIndex);
+            PositionNavbarSelectedContainer(currentSelectedIndex, 0f);
         }
         finally
         {
@@ -499,6 +517,8 @@ public class MainMenuManager : MonoBehaviour
             ConfigureNavbarMainContainerShadow(bottomBar);
         }
 
+        ConfigureNavbarSelectedContainer();
+
         for (int i = 0; i < buttons.Count; i++)
         {
             NavbarItemVisual item = ConfigureNavbarButton(i);
@@ -508,6 +528,7 @@ public class MainMenuManager : MonoBehaviour
         ConfigureNavbarSeparators(bottomBar);
         Canvas.ForceUpdateCanvases();
         PositionNavbarSeparators(currentSelectedIndex);
+        PositionNavbarSelectedContainer(currentSelectedIndex, 0f);
     }
 
     private void ConfigureNavbarMainContainerShadow(RectTransform bottomBar)
@@ -638,6 +659,63 @@ public class MainMenuManager : MonoBehaviour
         return Mathf.Max(0.1f, totalWeight);
     }
 
+    private void ConfigureNavbarSelectedContainer()
+    {
+        if (bottomBarLayoutRect == null)
+            return;
+
+        navbarSelectedContainer = GetOrCreateChild(bottomBarLayoutRect, "NavbarSelectedContainer", typeof(Image), typeof(CanvasGroup));
+        navbarSelectedContainer.gameObject.SetActive(navbarSelectedSprite != null);
+        navbarSelectedContainer.anchorMin = new Vector2(0f, 0f);
+        navbarSelectedContainer.anchorMax = new Vector2(0f, 0f);
+        navbarSelectedContainer.pivot = new Vector2(0.5f, 0f);
+        navbarSelectedContainer.localScale = Vector3.one;
+        navbarSelectedContainer.localRotation = Quaternion.identity;
+        navbarSelectedContainer.SetAsFirstSibling();
+        ApplySelectedBackgroundOffsets(navbarSelectedContainer);
+
+        Image selectedImage = navbarSelectedContainer.GetComponent<Image>();
+        selectedImage.sprite = GetNavbarSelectedSprite();
+        selectedImage.type = Image.Type.Simple;
+        selectedImage.raycastTarget = false;
+
+        navbarSelectedContainerGroup = navbarSelectedContainer.GetComponent<CanvasGroup>();
+        navbarSelectedContainerGroup.alpha = navbarSelectedSprite != null ? 1f : 0f;
+        navbarSelectedContainerGroup.blocksRaycasts = false;
+        navbarSelectedContainerGroup.interactable = false;
+    }
+
+    private void PositionNavbarSelectedContainer(int selectedIndex, float duration)
+    {
+        if (navbarSelectedContainer == null || buttons == null || selectedIndex < 0 || selectedIndex >= buttons.Count)
+            return;
+
+        RectTransform selectedButton = buttons[selectedIndex];
+        if (selectedButton == null)
+            return;
+
+        Vector2 targetAnchorMin = new Vector2(selectedButton.anchorMin.x, 0f);
+        Vector2 targetAnchorMax = new Vector2(selectedButton.anchorMax.x, 0f);
+        ApplySelectedBackgroundOffsets(navbarSelectedContainer);
+
+        navbarSelectedContainerTween?.Kill();
+        navbarSelectedContainer.SetAsFirstSibling();
+
+        if (duration > 0f)
+        {
+            navbarSelectedContainerTween = DOTween.Sequence()
+                .Join(navbarSelectedContainer.DOAnchorMin(targetAnchorMin, duration).SetEase(Ease.OutCubic))
+                .Join(navbarSelectedContainer.DOAnchorMax(targetAnchorMax, duration).SetEase(Ease.OutCubic))
+                .OnKill(() => navbarSelectedContainerTween = null);
+        }
+        else
+        {
+            navbarSelectedContainer.anchorMin = targetAnchorMin;
+            navbarSelectedContainer.anchorMax = targetAnchorMax;
+            navbarSelectedContainerTween = null;
+        }
+    }
+
     private NavbarItemVisual ConfigureNavbarButton(int index)
     {
         RectTransform button = buttons[index];
@@ -650,17 +728,9 @@ public class MainMenuManager : MonoBehaviour
             buttonImage.raycastTarget = true;
         }
 
-        RectTransform selectedBackground = GetOrCreateChild(button, "SelectedBackground", typeof(Image), typeof(CanvasGroup));
-        Image selectedImage = selectedBackground.GetComponent<Image>();
-        selectedImage.sprite = GetNavbarSelectedSprite();
-        selectedImage.type = Image.Type.Simple;
-        selectedImage.raycastTarget = false;
-        selectedBackground.localScale = Vector3.one;
-        selectedBackground.anchorMin = new Vector2(0f, 0f);
-        selectedBackground.anchorMax = new Vector2(1f, 0f);
-        selectedBackground.pivot = new Vector2(0.5f, 0f);
-        ApplySelectedBackgroundOffsets(selectedBackground);
-        selectedBackground.SetAsFirstSibling();
+        Transform legacySelectedBackground = button.Find("SelectedBackground");
+        if (legacySelectedBackground != null)
+            legacySelectedBackground.gameObject.SetActive(false);
 
         RectTransform icon = GetOrCreateChild(button, "NavbarIcon", typeof(Image));
         icon.anchorMin = new Vector2(0.5f, 0.5f);
@@ -675,7 +745,7 @@ public class MainMenuManager : MonoBehaviour
             iconImage.preserveAspect = true;
             iconImage.raycastTarget = false;
         }
-        HideUnusedButtonImages(button, icon, selectedBackground);
+        HideUnusedButtonImages(button, icon);
 
         RectTransform label = GetOrCreateChild(button, "SelectedLabel", typeof(TextMeshProUGUI), typeof(CanvasGroup));
         label.localScale = Vector3.one;
@@ -706,20 +776,18 @@ public class MainMenuManager : MonoBehaviour
         {
             Button = button,
             Icon = icon,
-            SelectedBackground = selectedBackground,
-            SelectedGroup = selectedBackground.GetComponent<CanvasGroup>(),
             Label = label,
             LabelGroup = label.GetComponent<CanvasGroup>()
         };
     }
 
-    private void HideUnusedButtonImages(RectTransform button, RectTransform icon, RectTransform selectedBackground)
+    private void HideUnusedButtonImages(RectTransform button, RectTransform icon)
     {
         Image[] images = button.GetComponentsInChildren<Image>(true);
         foreach (Image image in images)
         {
             Transform imageTransform = image.transform;
-            if (imageTransform == button || imageTransform == icon || imageTransform == selectedBackground)
+            if (imageTransform == button || imageTransform == icon)
                 continue;
 
             image.enabled = false;
@@ -1194,7 +1262,9 @@ public class MainMenuManager : MonoBehaviour
             Image separatorImage = separator.GetComponent<Image>();
             separatorImage.sprite = navbarSeparatorSprite;
             separatorImage.type = Image.Type.Simple;
-            separatorImage.color = new Color(1f, 1f, 1f, navSeparatorOpacity);
+            Color separatorColor = navSeparatorColor;
+            separatorColor.a *= navSeparatorOpacity;
+            separatorImage.color = separatorColor;
             separatorImage.raycastTarget = false;
             separator.sizeDelta = new Vector2(navSeparatorWidth, navBarHeight * navSeparatorHeightRatio);
             navbarSeparators.Add(separator);
@@ -1244,26 +1314,12 @@ public class MainMenuManager : MonoBehaviour
         float iconSize = GetNavbarIconSize(index, selected);
         float iconY = selected ? navSelectedIconYOffset : navDeselectedIconYOffset;
         float alpha = selected ? 1f : 0f;
-        float selectedScale = selected ? 1f : 0.88f;
 
         if (duration > 0f)
         {
             item.Icon.DOKill();
             item.Icon.DOSizeDelta(new Vector2(iconSize, iconSize), duration).SetEase(Ease.OutBack);
             item.Icon.DOAnchorPosY(iconY, duration).SetEase(Ease.OutBack);
-            item.SelectedBackground.DOKill();
-            item.SelectedGroup.DOKill();
-            ApplySelectedBackgroundOffsets(item.SelectedBackground);
-            item.SelectedGroup.alpha = alpha;
-
-            if (selected)
-            {
-                item.SelectedBackground.localScale = Vector3.one;
-            }
-            else
-            {
-                item.SelectedBackground.localScale = Vector3.one * selectedScale;
-            }
 
             item.Label.DOAnchorPosY(navLabelYOffset, duration).SetEase(Ease.OutBack);
             item.LabelGroup.DOKill();
@@ -1273,9 +1329,6 @@ public class MainMenuManager : MonoBehaviour
         {
             ApplyNavbarIconSize(item.Icon, iconSize);
             item.Icon.anchoredPosition = new Vector2(item.Icon.anchoredPosition.x, iconY);
-            ApplySelectedBackgroundOffsets(item.SelectedBackground);
-            item.SelectedBackground.localScale = Vector3.one * selectedScale;
-            item.SelectedGroup.alpha = alpha;
             item.Label.anchoredPosition = new Vector2(0f, navLabelYOffset);
             item.LabelGroup.alpha = alpha;
         }

@@ -9,6 +9,18 @@ public class Slot : MonoBehaviour
 
     public void OccupySlot(Matchable matchable, bool animate = false, float moveDuration = 0f, float popScale = 1f, Action onPlaced = null, float onPlacedLeadTime = 0f)
     {
+        if (matchable == null)
+        {
+            ClearSlot();
+            return;
+        }
+
+        if (matchable.OccupyingSlot != null && matchable.OccupyingSlot != this)
+            matchable.OccupyingSlot.ClearSlot();
+
+        if (OccupyingMatchable != null && OccupyingMatchable != matchable && OccupyingMatchable.OccupyingSlot == this)
+            OccupyingMatchable.OccupyingSlot = null;
+
         IsOccupied = true;
         OccupyingMatchable = matchable;
         matchable.OccupyingSlot = this;
@@ -52,6 +64,9 @@ public class Slot : MonoBehaviour
 
     public void ClearSlot()
     {
+        if (OccupyingMatchable != null && OccupyingMatchable.OccupyingSlot == this)
+            OccupyingMatchable.OccupyingSlot = null;
+
         IsOccupied = false;
         OccupyingMatchable = null;
     }

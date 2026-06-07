@@ -124,14 +124,26 @@ public class MatchManager : MonoBehaviour
         return matchableList;
     }
 
-    public void RegisterMatchable(Matchable matchable)
+    public bool RegisterMatchable(Matchable matchable, out bool completedMatch)
     {
-        List<Matchable> targetMatchableList = _matchableInfoDict[matchable.Color];
+        completedMatch = false;
+
+        if (matchable == null || !_matchableInfoDict.TryGetValue(matchable.Color, out List<Matchable> targetMatchableList))
+            return false;
 
         if (targetMatchableList.Count == REQUIRED_AMOUNT_TO_MATCH)
         {
             Debug.LogError($"Tried adding while capacity for {matchable.Color} was already reached!");
-            return;
+            return false;
+        }
+
+        completedMatch = targetMatchableList.Count + 1 == REQUIRED_AMOUNT_TO_MATCH;
+        Slot targetEmptySlot = completedMatch ? null : GetFirstEmptySlot();
+        if (!completedMatch && targetEmptySlot == null)
+        {
+            Debug.LogError("No empty slots found!");
+            completedMatch = false;
+            return false;
         }
 
         _matchableInfoDict[matchable.Color].Add(matchable);
@@ -142,6 +154,7 @@ public class MatchManager : MonoBehaviour
         {
             _matchCallbackCounter = 0;
             _currentMatchColor = matchable.Color;
+            HapticFeedback.PlayMatch();
 
             foreach (Matchable matchableObject in targetMatchableList)
             {
@@ -154,17 +167,12 @@ public class MatchManager : MonoBehaviour
         }
         else
         {
-            Slot targetEmptySlot = GetFirstEmptySlot();
-            if (targetEmptySlot == null)
-            {
-                Debug.LogError("No empty slots found!");
-                return;
-            }
-
             targetEmptySlot.OccupySlot(matchable, true, slotAppearDuration, slotAppearPopScale, PlayMatchableClickSfx, matchableClickSfxLeadTime);
             if (_sortCoroutine != null) StopCoroutine(_sortCoroutine);
             _sortCoroutine = StartCoroutine(SortBoard());
         }
+
+        return true;
     }
 
     private void OnMatchableDestroyed()
@@ -195,7 +203,13 @@ public class MatchManager : MonoBehaviour
         _sortCoroutine = null;
     }
 
-    public void RemoveMatchable(Matchable matchable) => _matchableInfoDict[matchable.Color].Remove(matchable);
+    public void RemoveMatchable(Matchable matchable)
+    {
+        if (matchable == null)
+            return;
+
+        _matchableInfoDict[matchable.Color].Remove(matchable);
+    }
 
     public void MoveToGhostSlot()
     {

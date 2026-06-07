@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 019e5e7d8460f8246b0c0b3b80074567, type: 3}
   m_Name: ScreenSpaceContactAOFeature
   m_EditorClassIdentifier: Assembly-CSharp::ScreenSpaceContactAOFeature
-  m_Active: 1
+  m_Active: 0
   shader: {fileID: 4800000, guid: b00d673bb3e3d2f48bba029dae34a398, type: 3}
   settings:
     renderPassEvent: 550

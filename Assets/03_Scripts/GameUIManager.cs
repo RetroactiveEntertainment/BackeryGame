@@ -10,13 +10,13 @@ public class GameUIManager : MonoBehaviour
 {
     private const float LostPanelAnimationDuration = 0.3f;
     private const float LostPanelStartScale = 0.85f;
-    private const int WinRewardSparkleCount = 3;
-    private const float WinRewardSparkleRadius = 95f;
-    private const float WinRewardSparkleInterval = 0.35f;
+    private const int WinRewardSparkleTextureSize = 512;
+    private const int WinRewardSparkleRenderLayer = 5;
+    private const float WinRewardSparkleAreaScale = 1.9f;
+    private const float WinRewardSparkleFadeoutDelay = 0.8f;
+    private const float WinRewardSparkleRenderDepth = 12f;
+    private const float WinRewardSparkleRenderOrthoSize = 6f;
     private const float WinIntroDuration = 1.35f;
-    private const float WinConfettiDistanceFromCamera = 8f;
-    private const float WinConfettiScale = 0.25f;
-    private const float WinConfettiLifetime = 2f;
     private const float WinPanelAnimationDuration = 0.34f;
     private const float WinPanelStartScale = 0.82f;
     private const float PerfectLetterDelay = 0.12f;
@@ -34,17 +34,24 @@ public class GameUIManager : MonoBehaviour
     [SerializeField] private RectTransform winRewardCoinRoot;
     [SerializeField] private TextMeshProUGUI winRewardAmountText;
     [SerializeField] private GameObject winRewardSparklePrefab;
-    [SerializeField] private Sprite winRewardSparkleSprite;
+    [SerializeField] private float winRewardSparkleInterval = 0.85f;
+    [SerializeField] private float winRewardSparkleLifetime = 1.65f;
+    [SerializeField] private float winRewardSparkleScale = 0.55f;
     [Header("Win Celebration")]
     [SerializeField] private TextMeshProUGUI winPerfectText;
-    [SerializeField] private GameObject winConfettiPrefab;
+    [SerializeField] private GameObject winFireworkObject;
 
     private Sequence lostPanelSequence;
     private Sequence winRewardSequence;
     private Sequence winRewardSparkleLoop;
     private Sequence winCelebrationSequence;
     private RectTransform winIntroOverlay;
-    private GameObject activeWinConfetti;
+    private RectTransform winRewardSparkleHost;
+    private RawImage winRewardSparkleImage;
+    private Material winRewardSparkleImageMaterial;
+    private Camera winRewardSparkleCamera;
+    private RenderTexture winRewardSparkleTexture;
+    private GameObject winRewardSparkleRenderRoot;
     private Vector3 winPanelOriginalScale = Vector3.one;
     private Vector3 winPerfectOriginalScale = Vector3.one;
     private Vector2 winPerfectOriginalPosition;
@@ -52,6 +59,9 @@ public class GameUIManager : MonoBehaviour
     private Vector3 winRewardAmountOriginalScale = Vector3.one;
     private RectTransform activePerfectLetterContainer;
     private readonly List<RectTransform> activePerfectLetters = new List<RectTransform>();
+    private readonly List<GameObject> activeWinRewardSparkles = new List<GameObject>();
+    private Coroutine countdownCoroutine;
+    private Tween countdownTimeScaleTween;
     private Sequence perfectIdleSequence;
 
     void Start()
@@ -65,10 +75,15 @@ public class GameUIManager : MonoBehaviour
         winRewardSequence?.Kill();
         winCelebrationSequence?.Kill();
         perfectIdleSequence?.Kill();
-        CleanupWinConfetti();
+        StopCountdownCoroutine();
         CleanupWinIntroOverlay();
         CleanupPerfectLetterContainer();
         StopWinRewardSparkleLoop();
+    }
+
+    private void OnDestroy()
+    {
+        CleanupWinRewardSparkleResources();
     }
 
     void SetGoldText()
@@ -84,7 +99,6 @@ public class GameUIManager : MonoBehaviour
     public void ReturnMain()
     {
         winCelebrationSequence?.Kill();
-        CleanupWinConfetti();
         CleanupWinIntroOverlay();
         CleanupPerfectLetterContainer();
         StopWinRewardSparkleLoop();
@@ -112,7 +126,6 @@ public class GameUIManager : MonoBehaviour
     public void PlayAgain()
     {
         winCelebrationSequence?.Kill();
-        CleanupWinConfetti();
         CleanupWinIntroOverlay();
         CleanupPerfectLetterContainer();
         StopWinRewardSparkleLoop();
@@ -133,7 +146,8 @@ public class GameUIManager : MonoBehaviour
             lostPanelSequence?.Kill();
             LostGamePanel.SetActive(false);
 
-            StartCoroutine(CountdownWithRealTime());
+            StopCountdownCoroutine();
+            countdownCoroutine = StartCoroutine(CountdownWithRealTime());
             //MatchManager.Instance.TryAgain();
             SetGoldText();
         }
@@ -149,6 +163,7 @@ public class GameUIManager : MonoBehaviour
         if (WinGamePanel == null)
             return;
 
+        CloseBlockingPanelsForWin();
         EnsureWinRewardReferences();
         EnsureWinPerfectText();
         if (winPerfectText != null)
@@ -162,14 +177,35 @@ public class GameUIManager : MonoBehaviour
         StopWinRewardSparkleLoop();
         winRewardSequence?.Kill();
         winCelebrationSequence?.Kill();
-        CleanupWinConfetti();
         CleanupWinIntroOverlay();
         CleanupPerfectLetterContainer();
 
         WinGamePanel.SetActive(false);
 
         RectTransform overlay = CreateWinIntroOverlay(out TextMeshProUGUI logoText);
-        SpawnWinIntroConfetti();
+        if (winFireworkObject != null)
+        {
+            if (winFireworkObject.scene.IsValid())
+            {
+                ParticleSystem[] particleSystems = winFireworkObject.GetComponentsInChildren<ParticleSystem>(true);
+                winFireworkObject.SetActive(true);
+
+                foreach (ParticleSystem particleSystem in particleSystems)
+                {
+                    particleSystem.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    particleSystem.Clear(false);
+                }
+
+                foreach (ParticleSystem particleSystem in particleSystems)
+                {
+                    particleSystem.Play(false);
+                }
+            }
+            else
+            {
+                Debug.LogWarning("Win firework object must be a scene instance, not a prefab asset.");
+            }
+        }
 
         winCelebrationSequence = DOTween.Sequence()
             .Append(logoText.rectTransform.DOScale(1f, 0.32f).From(0.35f).SetEase(Ease.OutBack, 2.4f))
@@ -183,6 +219,43 @@ public class GameUIManager : MonoBehaviour
                 PlayWinPanelReveal();
             })
             .OnKill(() => winCelebrationSequence = null);
+    }
+
+    private void CloseBlockingPanelsForWin()
+    {
+        lostPanelSequence?.Kill();
+        lostPanelSequence = null;
+        StopCountdownCoroutine();
+
+        if (LostGamePanel != null)
+        {
+            LostGamePanel.SetActive(false);
+
+            CanvasGroup lostCanvasGroup = LostGamePanel.GetComponent<CanvasGroup>();
+            if (lostCanvasGroup != null)
+                lostCanvasGroup.alpha = 1f;
+
+            RectTransform lostRect = LostGamePanel.GetComponent<RectTransform>();
+            if (lostRect != null)
+                lostRect.localScale = Vector3.one;
+        }
+
+        if (CountdownPanel != null)
+            CountdownPanel.SetActive(false);
+
+        Time.timeScale = 1f;
+    }
+
+    private void StopCountdownCoroutine()
+    {
+        if (countdownCoroutine != null)
+        {
+            StopCoroutine(countdownCoroutine);
+            countdownCoroutine = null;
+        }
+
+        countdownTimeScaleTween?.Kill();
+        countdownTimeScaleTween = null;
     }
 
     private RectTransform CreateWinIntroOverlay(out TextMeshProUGUI logoText)
@@ -228,35 +301,6 @@ public class GameUIManager : MonoBehaviour
         {
             Destroy(winIntroOverlay.gameObject);
             winIntroOverlay = null;
-        }
-    }
-
-    private void SpawnWinIntroConfetti()
-    {
-        if (winConfettiPrefab == null)
-            return;
-
-        Camera camera = Camera.main;
-        Vector3 position = Vector3.zero;
-        Quaternion rotation = Quaternion.identity;
-
-        if (camera != null)
-        {
-            position = camera.transform.position + camera.transform.forward * WinConfettiDistanceFromCamera;
-            rotation = camera.transform.rotation;
-        }
-
-        activeWinConfetti = Instantiate(winConfettiPrefab, position, rotation);
-        activeWinConfetti.transform.localScale = Vector3.one * WinConfettiScale;
-        Destroy(activeWinConfetti, WinConfettiLifetime);
-    }
-
-    private void CleanupWinConfetti()
-    {
-        if (activeWinConfetti != null)
-        {
-            Destroy(activeWinConfetti);
-            activeWinConfetti = null;
         }
     }
 
@@ -620,15 +664,53 @@ public class GameUIManager : MonoBehaviour
 
     private void SpawnWinRewardSparkles()
     {
-        if (winRewardCoinRoot == null)
+        if (winRewardCoinRoot == null || winRewardSparklePrefab == null)
             return;
 
-        for (int i = 0; i < WinRewardSparkleCount; i++)
+        if (!EnsureWinRewardSparkleHost())
+            return;
+
+        GameObject sparkle = Instantiate(winRewardSparklePrefab, winRewardSparkleRenderRoot.transform);
+        sparkle.transform.localPosition = Vector3.zero;
+        sparkle.transform.localRotation = Quaternion.identity;
+        sparkle.transform.localScale = Vector3.one * Mathf.Max(0.0001f, winRewardSparkleScale);
+        SetLayerRecursively(sparkle, WinRewardSparkleRenderLayer);
+        activeWinRewardSparkles.Add(sparkle);
+
+        ParticleSystem[] particleSystems = sparkle.GetComponentsInChildren<ParticleSystem>(true);
+        foreach (ParticleSystem particleSystem in particleSystems)
         {
-            Vector2 offset = UnityEngine.Random.insideUnitCircle * WinRewardSparkleRadius;
-            SpawnPrefabSparkle(offset);
-            SpawnUiImageSparkle(offset);
+            particleSystem.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+            particleSystem.Clear(false);
         }
+
+        foreach (ParticleSystem particleSystem in particleSystems)
+        {
+            particleSystem.Play(false);
+        }
+
+        float lifetime = Mathf.Max(0.1f, winRewardSparkleLifetime);
+        DOTween.Sequence()
+            .SetTarget(sparkle)
+            .AppendInterval(lifetime)
+            .AppendCallback(() =>
+            {
+                if (sparkle == null)
+                    return;
+
+                ParticleSystem[] systems = sparkle.GetComponentsInChildren<ParticleSystem>(true);
+                foreach (ParticleSystem particleSystem in systems)
+                {
+                    particleSystem.Stop(false, ParticleSystemStopBehavior.StopEmitting);
+                }
+            })
+            .AppendInterval(WinRewardSparkleFadeoutDelay)
+            .OnComplete(() =>
+            {
+                activeWinRewardSparkles.Remove(sparkle);
+                if (sparkle != null)
+                    Destroy(sparkle);
+            });
     }
 
     private void StartWinRewardSparkleLoop()
@@ -637,7 +719,7 @@ public class GameUIManager : MonoBehaviour
         SpawnWinRewardSparkles();
 
         winRewardSparkleLoop = DOTween.Sequence()
-            .AppendInterval(WinRewardSparkleInterval)
+            .AppendInterval(Mathf.Max(0.08f, winRewardSparkleInterval))
             .AppendCallback(SpawnWinRewardSparkles)
             .SetLoops(-1)
             .OnKill(() => winRewardSparkleLoop = null);
@@ -647,60 +729,194 @@ public class GameUIManager : MonoBehaviour
     {
         winRewardSparkleLoop?.Kill();
         winRewardSparkleLoop = null;
+        ClearActiveWinRewardSparkles();
     }
 
-    private void SpawnPrefabSparkle(Vector2 offset)
+    private void ClearActiveWinRewardSparkles()
     {
-        if (winRewardSparklePrefab == null)
-            return;
+        for (int i = activeWinRewardSparkles.Count - 1; i >= 0; i--)
+        {
+            GameObject sparkle = activeWinRewardSparkles[i];
+            if (sparkle == null)
+                continue;
 
-        Vector2 screenPosition = RectTransformUtility.WorldToScreenPoint(GetCanvasCamera(winRewardCoinRoot), winRewardCoinRoot.position) + offset;
-        Camera camera = Camera.main;
-        if (camera == null)
-            return;
+            DOTween.Kill(sparkle);
 
-        Vector3 worldPosition = camera.ScreenToWorldPoint(new Vector3(screenPosition.x, screenPosition.y, Mathf.Abs(camera.transform.position.z) + 5f));
-        GameObject sparkle = Instantiate(winRewardSparklePrefab, worldPosition, Quaternion.identity);
-        sparkle.transform.localScale = Vector3.one * 0.75f;
-        Destroy(sparkle, 2f);
+            ParticleSystem[] particleSystems = sparkle.GetComponentsInChildren<ParticleSystem>(true);
+            foreach (ParticleSystem particleSystem in particleSystems)
+            {
+                particleSystem.Stop(false, ParticleSystemStopBehavior.StopEmittingAndClear);
+                particleSystem.Clear(false);
+            }
+
+            Destroy(sparkle);
+        }
+
+        activeWinRewardSparkles.Clear();
     }
 
-    private void SpawnUiImageSparkle(Vector2 offset)
+    private bool EnsureWinRewardSparkleHost()
     {
-        if (winRewardSparkleSprite == null)
-            return;
+        if (winRewardCoinRoot == null || winRewardCoinRoot.parent == null)
+            return false;
 
-        GameObject sparkleObject = new GameObject("RewardImageSparkle", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
-        RectTransform rect = sparkleObject.GetComponent<RectTransform>();
-        rect.SetParent(winRewardCoinRoot.parent, false);
-        rect.anchorMin = winRewardCoinRoot.anchorMin;
-        rect.anchorMax = winRewardCoinRoot.anchorMax;
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = Vector2.one * Random.Range(36f, 72f);
-        rect.anchoredPosition = winRewardCoinRoot.anchoredPosition + offset;
-        rect.localScale = Vector3.zero;
-        rect.SetAsLastSibling();
+        if (winRewardSparkleTexture == null)
+        {
+            winRewardSparkleTexture = new RenderTexture(WinRewardSparkleTextureSize, WinRewardSparkleTextureSize, 0, RenderTextureFormat.ARGB32)
+            {
+                name = "WinRewardSparkleTexture",
+                useMipMap = false,
+                autoGenerateMips = false
+            };
+            winRewardSparkleTexture.Create();
+        }
 
-        Image image = sparkleObject.GetComponent<Image>();
-        image.sprite = winRewardSparkleSprite;
-        image.preserveAspect = true;
-        image.raycastTarget = false;
-        image.color = new Color(1f, 0.95f, 0.45f, 0f);
+        if (winRewardSparkleRenderRoot == null)
+        {
+            winRewardSparkleRenderRoot = new GameObject("WinRewardSparkleRenderRoot");
+            winRewardSparkleRenderRoot.transform.position = new Vector3(10000f, 10000f, 0f);
+            SetLayerRecursively(winRewardSparkleRenderRoot, WinRewardSparkleRenderLayer);
+        }
 
-        DOTween.Sequence()
-            .Append(rect.DOScale(Random.Range(0.75f, 1.1f), 0.18f).SetEase(Ease.OutBack))
-            .Join(image.DOFade(1f, 0.12f))
-            .Join(rect.DORotate(new Vector3(0f, 0f, Random.Range(80f, 180f)), 0.6f, RotateMode.FastBeyond360))
-            .AppendInterval(0.14f)
-            .Append(image.DOFade(0f, 0.22f))
-            .Join(rect.DOScale(Vector3.zero, 0.22f).SetEase(Ease.InBack))
-            .OnComplete(() => Destroy(sparkleObject));
+        if (winRewardSparkleCamera == null)
+        {
+            GameObject cameraObject = new GameObject("WinRewardSparkleCamera");
+            cameraObject.layer = WinRewardSparkleRenderLayer;
+            cameraObject.transform.position = winRewardSparkleRenderRoot.transform.position - Vector3.forward * WinRewardSparkleRenderDepth;
+            cameraObject.transform.rotation = Quaternion.identity;
+            cameraObject.transform.SetParent(winRewardSparkleRenderRoot.transform, true);
+            winRewardSparkleCamera = cameraObject.AddComponent<Camera>();
+            winRewardSparkleCamera.clearFlags = CameraClearFlags.SolidColor;
+            winRewardSparkleCamera.backgroundColor = new Color(0f, 0f, 0f, 0f);
+            winRewardSparkleCamera.orthographic = true;
+            winRewardSparkleCamera.orthographicSize = WinRewardSparkleRenderOrthoSize;
+            winRewardSparkleCamera.nearClipPlane = 0.1f;
+            winRewardSparkleCamera.farClipPlane = WinRewardSparkleRenderDepth * 2f;
+            winRewardSparkleCamera.cullingMask = 1 << WinRewardSparkleRenderLayer;
+            winRewardSparkleCamera.targetTexture = winRewardSparkleTexture;
+            winRewardSparkleCamera.allowHDR = true;
+            winRewardSparkleCamera.allowMSAA = false;
+        }
+
+        if (winRewardSparkleHost == null)
+        {
+            GameObject hostObject = new GameObject("WinRewardSparkleHost", typeof(RectTransform), typeof(CanvasRenderer), typeof(RawImage));
+            winRewardSparkleHost = hostObject.GetComponent<RectTransform>();
+
+            winRewardSparkleImage = hostObject.GetComponent<RawImage>();
+            winRewardSparkleImage.texture = winRewardSparkleTexture;
+            winRewardSparkleImage.material = GetWinRewardSparkleImageMaterial();
+            winRewardSparkleImage.color = Color.white;
+            winRewardSparkleImage.raycastTarget = false;
+        }
+
+        if (winRewardSparkleHost.parent != winRewardCoinRoot.parent)
+            winRewardSparkleHost.SetParent(winRewardCoinRoot.parent, false);
+
+        UpdateWinRewardSparkleHostLayout();
+        return true;
     }
 
-    private Camera GetCanvasCamera(RectTransform rectTransform)
+    private void UpdateWinRewardSparkleHostLayout()
     {
-        Canvas canvas = rectTransform.GetComponentInParent<Canvas>();
-        return canvas != null && canvas.renderMode != RenderMode.ScreenSpaceOverlay ? canvas.worldCamera : null;
+        if (winRewardSparkleHost == null || winRewardCoinRoot == null)
+            return;
+
+        winRewardSparkleHost.anchorMin = winRewardCoinRoot.anchorMin;
+        winRewardSparkleHost.anchorMax = winRewardCoinRoot.anchorMax;
+        winRewardSparkleHost.pivot = winRewardCoinRoot.pivot;
+        winRewardSparkleHost.anchoredPosition = winRewardCoinRoot.anchoredPosition;
+        winRewardSparkleHost.sizeDelta = winRewardCoinRoot.rect.size * WinRewardSparkleAreaScale;
+        winRewardSparkleHost.localScale = Vector3.one;
+        winRewardSparkleHost.localRotation = Quaternion.identity;
+        MoveWinRewardSparkleHostBehindCoin();
+    }
+
+    private void MoveWinRewardSparkleHostBehindCoin()
+    {
+        if (winRewardSparkleHost == null || winRewardCoinRoot == null || winRewardSparkleHost.parent != winRewardCoinRoot.parent)
+            return;
+
+        int coinSiblingIndex = winRewardCoinRoot.GetSiblingIndex();
+        if (winRewardSparkleHost.GetSiblingIndex() < coinSiblingIndex)
+            coinSiblingIndex--;
+
+        winRewardSparkleHost.SetSiblingIndex(Mathf.Max(0, coinSiblingIndex));
+    }
+
+    private Material GetWinRewardSparkleImageMaterial()
+    {
+        if (winRewardSparkleImageMaterial != null)
+            return winRewardSparkleImageMaterial;
+
+        Shader shader = Shader.Find("UI/TrueShadow-Additive");
+        if (shader == null)
+            shader = Shader.Find("UI/Additive");
+        if (shader == null)
+            shader = Shader.Find("Particles/Additive");
+        if (shader == null)
+            shader = Shader.Find("Legacy Shaders/Particles/Additive");
+
+        if (shader == null)
+            return null;
+
+        winRewardSparkleImageMaterial = new Material(shader)
+        {
+            name = "WinRewardSparkleAdditive"
+        };
+
+        return winRewardSparkleImageMaterial;
+    }
+
+    private void SetLayerRecursively(GameObject target, int layer)
+    {
+        if (target == null)
+            return;
+
+        target.layer = layer;
+
+        foreach (Transform child in target.transform)
+        {
+            SetLayerRecursively(child.gameObject, layer);
+        }
+    }
+
+    private void CleanupWinRewardSparkleResources()
+    {
+        ClearActiveWinRewardSparkles();
+
+        if (winRewardSparkleImage != null)
+        {
+            winRewardSparkleImage.texture = null;
+            winRewardSparkleImage.material = null;
+        }
+
+        if (winRewardSparkleImageMaterial != null)
+        {
+            Destroy(winRewardSparkleImageMaterial);
+            winRewardSparkleImageMaterial = null;
+        }
+
+        if (winRewardSparkleTexture != null)
+        {
+            winRewardSparkleTexture.Release();
+            Destroy(winRewardSparkleTexture);
+            winRewardSparkleTexture = null;
+        }
+
+        if (winRewardSparkleHost != null)
+        {
+            Destroy(winRewardSparkleHost.gameObject);
+            winRewardSparkleHost = null;
+            winRewardSparkleImage = null;
+        }
+
+        if (winRewardSparkleRenderRoot != null)
+        {
+            Destroy(winRewardSparkleRenderRoot);
+            winRewardSparkleRenderRoot = null;
+            winRewardSparkleCamera = null;
+        }
     }
 
     private void PlayLostPanelAnimation()
@@ -727,7 +943,9 @@ public class GameUIManager : MonoBehaviour
 
     IEnumerator CountdownWithRealTime()
     {
-        CountdownPanel.SetActive(true);
+        if (CountdownPanel != null)
+            CountdownPanel.SetActive(true);
+
         for (int i = 3; i >= 1; i--)
         {
             countdownText.text = i.ToString();
@@ -736,13 +954,18 @@ public class GameUIManager : MonoBehaviour
         MatchManager.Instance.TryAgain();
         Debug.Log("CountDownEnds Here");
         Time.timeScale = 0.25f;
-        CountdownPanel.SetActive(false);
-         DOTween.To(
+        if (CountdownPanel != null)
+            CountdownPanel.SetActive(false);
+
+        countdownTimeScaleTween?.Kill();
+        countdownTimeScaleTween = DOTween.To(
             () => Time.timeScale,
             x => Time.timeScale = x,
             1f,
             0.5f
         )
-        .SetEase(Ease.InOutQuad);
+        .SetEase(Ease.InOutQuad)
+        .OnKill(() => countdownTimeScaleTween = null);
+        countdownCoroutine = null;
     }
 }
